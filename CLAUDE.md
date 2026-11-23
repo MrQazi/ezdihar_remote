@@ -19,6 +19,27 @@ never reflowed. System text scaling is ignored. All logical sizes in code are ca
 size things from the real screen or `devicePixelRatio`. `test/app_canvas_test.dart` checks every
 screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x1600 x 1, 1.5, 2.
 
+## Sources (links shared by the client)
+- Figma file: https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan
+  - App flow, screens left to right / states top to bottom, from Splash
+    https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan?node-id=3-391&m=dev
+    to the thank-you screen https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan?node-id=100-143&m=dev
+  - Building views + floor highlights (A1..A3, B1..B3, C1..C4; "A1" = view 1 of type A):
+    https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan?node-id=652-2&m=dev
+- Transition videos (Building A / B / C subfolders, "Frame n.mp4" = view n -> n+1, plus a
+  "Complete Building X Orbit" of all frames): https://drive.google.com/drive/folders/1Mgj190kdfRQNlmUGu3u4VwiIWF49gT2H
+- Exterior stills e1..e9 (first link given for the videos; holds only JPEG renders, not used):
+  https://drive.google.com/drive/folders/1E8GYBkBW4C1YqJ2whp9Q3ZQ-8kJRyIcq
+- Floor plans (3D, one per building type + unit type): https://drive.google.com/drive/folders/1DYwiqcwQXYNPTUsr61zN9RYmiJuHDEzq
+  - Type A https://drive.google.com/drive/folders/1Zg_H1PlaU1mQmqU_5ZUymp4TkWk1l-o1
+  - Type B https://drive.google.com/drive/folders/1_947HYnb48cu3DgsoTpicYucQ1Uf01eL
+  - Type C https://drive.google.com/drive/folders/1_8B5QlX7hiP52qooEZfyVqmDortp957g
+- EN/AR content (names, landmark descriptions, amenity and room names; wins over Figma for copy):
+  https://docs.google.com/document/d/1n60BtryCBPATok7z3AW-tyGkK63FqliPlZL5VVUOl4M/edit
+- Project data sheet "Ezdihar _ Data" (Building / Floor / Apartment tabs, mirrored by
+  `assets/data/*.json`): https://docs.google.com/spreadsheets/d/1p8khdWDAgjdXNpKbSPwz9Q6aHbsSHQcdprNkjJGVSxs/edit
+- Main screen player: https://github.com/Qazi-Narsun/NarsunPlayer (branch `ezdhar_main`).
+
 ## Workflow: Figma -> Flutter
 1. Load the `figma:figma-design-to-code` skill, then `create_session` (fileKey) and
    `get_design_context` (nodeId with `-` -> `:`, `skillNames: figma-design-to-code`).
