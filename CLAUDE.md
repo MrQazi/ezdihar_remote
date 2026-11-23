@@ -92,7 +92,7 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   button: pops the stack to the first page (`InitialScreen`). Filter state is held locally (no unit data yet).
   Assets in `assets/images/masterplan/`.
 - Masterplan buildings (Figma 648:1892 en / 648:1344 ar): the aerial render
-  `background.jpg` (Figma's image, only 1376x789 at the source) on the 1920x1080 frame, inside
+  `background.jpg` (Figma's original upload, 4096x2304, cover-scaled) on the 1920x1080 frame, inside
   `RotatingView` so everything moves with it. `lib/data/masterplan_data.dart` holds the Figma
   placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
   traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
@@ -112,8 +112,8 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   views (`lib/data/building_views.dart`, Figma "Group 8" 652:2: A1..A3, B1..B3, C1..C4 on
   3840x2160 frames, laid out on a 1920x1080 canvas = frame / 2, cover) with each view's floor
   outlines, info panel (X closes, info button bottom-start reopens), Restart pops to the first page.
-  Stills are `assets/images/building/views/<type>_<n>.jpg`: the Figma frames' own renders (image
-  layer only, exported at 1920x1080), never frames grabbed from the clips, so the outlines align;
+  Stills are `assets/images/building/views/<type>_<n>.jpg`: the Figma frames' own renders (the
+  original 3840x2160 uploads), never frames grabbed from the clips, so the outlines align;
   they match the clips' first frames (A3 -> A1 and B3 -> B1 clips end slightly off view 1). Rotate
   buttons / arrow keys play the transition clips (`video_player`, bundled 1080p H.264 in
   `assets/videos/building/`): view n -> n+1 plays `<type>_<n>.mp4`, n+1 -> n plays
@@ -135,7 +135,7 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   type on that floor (hidden entirely on a floor with no apartments, e.g. type C's GF), loaded from
   `BuildingType.planAsset`: `assets/images/apartments/<building type>_<unit type>.png` (a_1br ..
   c_3br, the 3D plans from the Drive "floorplans" folder, one per building type + unit type,
-  scaled to 1200px). Floor Details X only
+  at their original size). Floor Details X only
   collapses the panel (info button reopens); Apartments X clears the selection.
 - Apartment details (Figma 59:454): tapping an apartment card replaces both panels with
   `_ApartmentDetailsPanel` (bottom-start: floor, type, area, availability from
