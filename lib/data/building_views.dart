@@ -1,8 +1,9 @@
 import 'outline_shape.dart';
 
 /// One exterior view of a building type (Figma "Group 8" 652:2: frames A1..A3,
-/// B1..B3, C1..C4, 3840x2160). [image] is the view's still (the first frame of
-/// [clip]); [clip] is the transition from this view to the next one and
+/// B1..B3, C1..C4, 3840x2160). [image] is the view's still, the Figma frame's
+/// own render (exported at 1920x1080), so the traced outlines register to it;
+/// it matches the first frame of [clip]. [clip] is the transition from this view to the next one and
 /// [reverseClip] the same clip reversed (next view back to this one).
 ///
 /// [floors] are the floor highlights traced on the view, top floor first (6F

@@ -78,7 +78,9 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   views (`lib/data/building_views.dart`, Figma "Group 8" 652:2: A1..A3, B1..B3, C1..C4 on
   3840x2160 frames, laid out on a 1920x1080 canvas = frame / 2, cover) with each view's floor
   outlines, info panel (X closes, info button bottom-start reopens), Restart pops to the first page.
-  Stills are `assets/images/building/views/<type>_<n>.jpg` (first frame of clip n). Rotate
+  Stills are `assets/images/building/views/<type>_<n>.jpg`: the Figma frames' own renders (image
+  layer only, exported at 1920x1080), never frames grabbed from the clips, so the outlines align;
+  they match the clips' first frames (A3 -> A1 and B3 -> B1 clips end slightly off view 1). Rotate
   buttons / arrow keys play the transition clips (`video_player`, bundled 1080p H.264 in
   `assets/videos/building/`): view n -> n+1 plays `<type>_<n>.mp4`, n+1 -> n plays
   `<type>_<n>_reverse.mp4` (pre-reversed with ffmpeg), wrapping (A3 -> A1 = clip 3). Clip n is the
