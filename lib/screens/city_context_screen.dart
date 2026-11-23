@@ -78,7 +78,7 @@ class _CityContextScreenState extends State<CityContextScreen> {
       'kind': 'landmark',
       'id': landmark.id,
       'title': landmark.name(strings).trim(),
-      'description': strings.landmarkDescription,
+      'description': strings.landmarkDescription(landmark.id),
       'metadata': strings.landmarkDistance(landmark.km, landmark.minutes),
       'locale': strings.locale.languageCode,
     });
@@ -665,7 +665,7 @@ class _LandmarkCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      strings.landmarkDescription,
+                      strings.landmarkDescription(landmark.id),
                       style: appText(strings, 20, FontWeight.w400, color: secondary).copyWith(height: 28 / 20),
                     ),
                   ],

@@ -21,7 +21,7 @@ class AppStrings {
     'kingKhalidAirport': 'King Khalid International Airport',
     'khuzamDistrict': 'Khuzam District',
     'equestrianClub': 'Equestrian Club',
-    'princessNourahUniversity': 'Princess Nourah Bint Abdulrahman University ',
+    'princessNourahUniversity': 'Princess Nourah Bint Abdulrahman University',
     'kingSalmanAirport': 'King Salman International Airport',
     'imamUniversity': 'Imam Muhammad Ibn Saud Islamic University',
     'expo2030': 'Expo 2030 Riyadh',
@@ -70,10 +70,10 @@ class AppStrings {
     'collapse': 'Collapse',
     'tapBuildingHint': 'Tap a building to explore it',
     'amenity_greenArea': 'Green Area',
-    'amenity_playArea': 'Play Area',
+    'amenity_playArea': 'Children’s Playground',
     'amenity_padelCourt': 'Padel Court',
     'amenity_waterFountain': 'Water Fountain',
-    'amenity_sportsCourt': 'Basketball & Volleyball Court',
+    'amenity_sportsCourt': 'Basketball and Volleyball Court',
     'tapFloorHint': 'Tap a floor to see its apartments',
     'matchCount': '{n} of {total} buildings match',
     'noMatch': 'No buildings match your filters',
@@ -100,7 +100,7 @@ class AppStrings {
     'floorDetails': 'Floor Details',
     'floorArea': 'Floor Area',
     'area': 'Area',
-    'size': 'Size',
+    'size': 'Surface',
     'available': 'Available',
     'unavailable': 'Not Available',
     'connectScreen': 'Connect screen',
@@ -122,11 +122,40 @@ class AppStrings {
     'previousLandmark': 'Previous',
     'nextLandmark': 'Next',
     'landmarkDistance': '{km} km · {min} min',
-    // Placeholder copy from Figma (401:2), shown for every landmark until the real texts arrive.
-    'landmarkDescription':
-        'King Khalid International Airport (RUH) is Riyadh’s main international gateway, connecting the city to '
-        'major regional and global destinations. offering convenient access for residents, visitors, and business '
-        'travelers.',
+    // Landmark descriptions: "Mashael Al Fursan_ Arabic Content" doc, keyed by landmark id.
+    'landmarkDescription_king_salman_airport':
+        'King Salman International Airport is a major aviation development planned to expand Riyadh’s passenger '
+        'and cargo capacity. The project aims to strengthen the capital’s global connectivity and support its '
+        'long-term ambitions as an international travel and logistics hub.',
+    'landmarkDescription_king_khalid_airport':
+        'King Khalid International Airport is Riyadh’s principal international airport, connecting the capital to '
+        'domestic and international destinations. Its extensive flight network supports business and leisure '
+        'travel, making it a key transport gateway for residents and visitors.',
+    'landmarkDescription_equestrian_club':
+        'The Equestrian Club is a destination associated with equestrian sports and horse-related activities in '
+        'Riyadh. It provides access to the city’s equestrian scene and contributes to the area’s wider sporting '
+        'and recreational appeal.',
+    'landmarkDescription_horse_racing_track':
+        'The Horse Racing Track is a prominent sporting destination in Riyadh, hosting competitive horse-racing '
+        'events and attracting spectators throughout the racing season. Its facilities contribute to the city’s '
+        'sporting and entertainment offerings.',
+    'landmarkDescription_imam_university':
+        'Imam Muhammad ibn Saud Islamic University is a prominent public university in Riyadh, historically '
+        'recognised for Islamic and Arabic studies and offering programmes across a wider range of academic '
+        'disciplines. Its substantial campus provides an established destination for higher education and '
+        'research.',
+    'landmarkDescription_princess_nourah_university':
+        'Princess Nourah bint Abdulrahman University is a prominent public university dedicated to women’s higher '
+        'education in Riyadh. Its extensive campus supports academic programmes, research, and student '
+        'development across a diverse range of disciplines.',
+    'landmarkDescription_expo_2030':
+        'Expo 2030 Riyadh is a global exhibition scheduled to take place from 1 October 2030 to 31 March 2031. '
+        'The event will bring together countries and organisations to showcase innovation, culture, '
+        'sustainability, and international collaboration.',
+    'landmarkDescription_khuzam_district':
+        'Khuzam is a residential development in Riyadh designed to support modern community living. Its planned '
+        'neighbourhood environment and residential offerings form part of the city’s wider urban expansion and '
+        'development of new residential communities.',
   };
 
   static const _ar = {
@@ -135,11 +164,11 @@ class AppStrings {
     'tagline': 'اكتشف طريقة جديدة للعيش',
     'startJourney': 'ابدأ الرحلة',
     'back': 'رجوع',
-    'horseRacingTrack': 'مضمار سباق الخيل',
+    'horseRacingTrack': 'ميدان سباق الخيل',
     'kingKhalidAirport': 'مطار الملك خالد الدولي',
-    'khuzamDistrict': 'حي خزام',
+    'khuzamDistrict': 'وجهة خزام',
     'equestrianClub': 'نادي الفروسية',
-    'princessNourahUniversity': 'جامعة الأميرة نورة بنت عبدالرحمن',
+    'princessNourahUniversity': 'جامعة الأميرة نورة بنت عبد الرحمن',
     'kingSalmanAirport': 'مطار الملك سلمان الدولي',
     'imamUniversity': 'جامعة الإمام محمد بن سعود الإسلامية',
     'expo2030': 'إكسبو 2030 الرياض',
@@ -187,10 +216,10 @@ class AppStrings {
     'masterplan': 'المخطط العام',
     'collapse': 'طيّ',
     'tapBuildingHint': 'اضغط على مبنى لاستكشافه',
-    'amenity_greenArea': 'المنطقة الخضراء',
-    'amenity_playArea': 'منطقة الألعاب',
-    'amenity_padelCourt': 'ملعب البادل',
-    'amenity_waterFountain': 'نافورة مياه',
+    'amenity_greenArea': 'المساحة الخضراء',
+    'amenity_playArea': 'منطقة ألعاب الأطفال',
+    'amenity_padelCourt': 'ملعب بادل',
+    'amenity_waterFountain': 'نافورة مائية',
     'amenity_sportsCourt': 'ملعب كرة السلة والكرة الطائرة',
     'tapFloorHint': 'اضغط على طابق لعرض شققه',
     'matchCount': '{n} من {total} مبنى مطابق',
@@ -240,9 +269,39 @@ class AppStrings {
     'previousLandmark': 'السابق',
     'nextLandmark': 'التالي',
     'landmarkDistance': '{km} كم · {min} دقيقة',
-    'landmarkDescription':
-        'مطار الملك خالد الدولي (RUH) هو البوابة الدولية الرئيسية للرياض، يربط المدينة بأهم الوجهات الإقليمية '
-        'والعالمية، ويوفر وصولاً سهلاً للسكان والزوار ورجال الأعمال.',
+    'landmarkDescription_king_salman_airport':
+        'يُعد مطار الملك سلمان الدولي مشروعًا رئيسيًا لتطوير قطاع الطيران، ويهدف إلى زيادة الطاقة الاستيعابية '
+        'لحركة المسافرين والشحن الجوي في الرياض. ويسعى المشروع إلى تعزيز ارتباط العاصمة بمختلف الوجهات '
+        'العالمية، ودعم تطلعاتها طويلة المدى لتصبح مركزًا دوليًا للسفر والخدمات اللوجستية.',
+    'landmarkDescription_king_khalid_airport':
+        'يُعد مطار الملك خالد الدولي المطار الدولي الرئيسي لمدينة الرياض، حيث يربط العاصمة بالعديد من الوجهات '
+        'المحلية والدولية. وتدعم شبكة رحلاته الواسعة السفر لأغراض الأعمال والسياحة والترفيه، مما يجعله بوابة '
+        'جوية رئيسية للمقيمين والزوار.',
+    'landmarkDescription_equestrian_club':
+        'يُعد نادي الفروسية وجهة مرتبطة برياضات الفروسية والأنشطة المتعلقة بالخيل في مدينة الرياض. ويتيح فرصة '
+        'للتعرف على رياضة الفروسية وممارستها في المدينة، كما يسهم في تعزيز جاذبية المنطقة بوصفها وجهة للأنشطة '
+        'الرياضية والترفيهية.',
+    'landmarkDescription_horse_racing_track':
+        'يُعد ميدان سباق الخيل وجهة رياضية بارزة في مدينة الرياض، حيث يستضيف منافسات وفعاليات سباقات الخيل '
+        'ويستقطب الجماهير طوال موسم السباقات. وتسهم مرافقه في إثراء الخيارات الرياضية والترفيهية المتاحة في '
+        'المدينة.',
+    'landmarkDescription_imam_university':
+        'تُعد جامعة الإمام محمد بن سعود الإسلامية إحدى الجامعات الحكومية البارزة في مدينة الرياض، وتتميز '
+        'بتاريخها العريق في الدراسات الإسلامية واللغة العربية، إلى جانب تقديم برامج أكاديمية في مجموعة واسعة من '
+        'التخصصات العلمية والمعرفية. وتضم الجامعة حرمًا جامعيًا واسعًا يشكل صرحًا تعليميًا راسخًا للتعليم العالي '
+        'والبحث العلمي.',
+    'landmarkDescription_princess_nourah_university':
+        'تُعد جامعة الأميرة نورة بنت عبد الرحمن إحدى الجامعات الحكومية الرائدة والمتخصصة في التعليم العالي '
+        'للمرأة في مدينة الرياض. وتضم حرمًا جامعيًا واسعًا يوفر بيئة تعليمية متكاملة تدعم البرامج الأكاديمية '
+        'والبحث العلمي وتنمية مهارات الطالبات في مجموعة متنوعة من التخصصات.',
+    'landmarkDescription_expo_2030':
+        'إكسبو 2030 الرياض هو معرض عالمي من المقرر إقامته خلال الفترة من 1 أكتوبر 2030 إلى 31 مارس 2031. '
+        'وسيجمع المعرض دولًا ومنظمات من مختلف أنحاء العالم لاستعراض الابتكارات والثقافات ومبادرات الاستدامة، '
+        'وتعزيز التعاون الدولي.',
+    'landmarkDescription_khuzam_district':
+        'تُعد وجهة خزام مشروعًا عمرانيًا سكنيًا في مدينة الرياض، صُمم لتوفير بيئة مجتمعية عصرية تلبي احتياجات '
+        'الحياة الحديثة. وتتميز الوجهة بأحيائها السكنية المخططة وخياراتها السكنية المتنوعة، وتشكل جزءًا من '
+        'التوسع العمراني الذي تشهده المدينة وتطوير مجتمعات سكنية جديدة.',
   };
 
   static AppStrings of(BuildContext context) =>
@@ -348,7 +407,8 @@ class AppStrings {
   String get cameraError => _values['cameraError']!;
   String get previousLandmark => _values['previousLandmark']!;
   String get nextLandmark => _values['nextLandmark']!;
-  String get landmarkDescription => _values['landmarkDescription']!;
+  /// Description of the city landmark with id [landmarkId] (e.g. "expo_2030").
+  String landmarkDescription(String landmarkId) => _values['landmarkDescription_$landmarkId']!;
   String landmarkDistance(int km, int minutes) =>
       _values['landmarkDistance']!.replaceAll('{km}', '$km').replaceAll('{min}', '$minutes');
 

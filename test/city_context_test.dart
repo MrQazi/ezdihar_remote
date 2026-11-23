@@ -9,14 +9,14 @@ import 'package:ezdihar_remote/services/player_connection.dart';
 import 'package:ezdihar_remote/widgets/app_canvas.dart';
 
 void main() {
-  Future<Rect> pumpCity(WidgetTester tester) async {
+  Future<Rect> pumpCity(WidgetTester tester, {String locale = 'en'}) async {
     tester.view.physicalSize = const Size(1920, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) => AppCanvas(child: child!),
-        locale: const Locale('en'),
+        locale: Locale(locale),
         supportedLocales: AppStrings.supportedLocales,
         localizationsDelegates: const [
           AppStrings.delegate,
@@ -78,6 +78,29 @@ void main() {
     expect(landmarkPhoto('imam_university'), findsOneWidget);
   });
 
+  for (final locale in ['en', 'ar']) {
+    testWidgets('every landmark card shows its own description without overflow ($locale)', (tester) async {
+      await pumpCity(tester, locale: locale);
+      final strings = await AppStrings.delegate.load(Locale(locale));
+      await tester.tap(find.text(strings.horseRacingTrack));
+      await settle(tester);
+      const ids = [
+        'horse_racing_track', 'khuzam_district', 'expo_2030', 'princess_nourah_university',
+        'imam_university', 'king_salman_airport', 'equestrian_club', 'king_khalid_airport',
+      ];
+      final seen = <String>{};
+      for (var i = 0; i < ids.length; i++) {
+        final id = ids.firstWhere((id) => landmarkPhoto(id).evaluate().isNotEmpty);
+        seen.add(id);
+        expect(find.text(strings.landmarkDescription(id)), findsOneWidget, reason: id);
+        expect(tester.takeException(), isNull, reason: id);
+        await tester.tap(find.text(strings.nextLandmark));
+        await settle(tester);
+      }
+      expect(seen, ids.toSet());
+    });
+  }
+
   testWidgets('X and Back close the landmark before leaving the screen', (tester) async {
     await pumpCity(tester);
     await tester.tap(find.text('Expo 2030 Riyadh'));
@@ -104,7 +127,7 @@ void main() {
       'kind': 'landmark',
       'id': 'expo_2030',
       'title': 'Expo 2030 Riyadh',
-      'description': startsWith('King Khalid'),
+      'description': startsWith('Expo 2030 Riyadh is a global exhibition'),
       'metadata': '28 km · 26 min',
       'locale': 'en',
     });

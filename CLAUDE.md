@@ -47,9 +47,9 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   drawn as a `MapPin` centred on its tile, `_LandmarkCard` (photo, name, distance, description)
   sits bottom-start and Previous / Next (bottom-end, arrow keys too) cycle the landmarks with
   wrap-around. X, a tap on the dimmed map, Back (`PopScope`) or Esc close it. Photos are
-  `assets/images/city/landmarks/<id>.jpg`; the distance (28 km / 26 min) and description are
-  Figma placeholders shared by every landmark (`_Landmark.km/minutes`,
-  `AppStrings.landmarkDescription`).
+  `assets/images/city/landmarks/<id>.jpg`; each landmark's name and description come from the content
+  doc (`AppStrings.landmarkDescription(id)`); the distance (28 km / 26 min) is still a Figma
+  placeholder shared by every landmark (`_Landmark.km/minutes`).
 - `MasterplanScreen` (Figma 24:1403 + Filters 49:5630 + Gallery 49:6205): bottom nav
   = Filters|Gallery tabs; rotate-left / rotate-right buttons sit at the screen sides,
   vertically centred (Figma 225:542 / 225:526, as on the building screen). Tabs are mutually exclusive
@@ -62,9 +62,9 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   `RotatingView` so everything moves with it. `lib/data/masterplan_data.dart` holds the Figma
   placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
   traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
-  sub-path each) and `masterplanAmenities` (Green Area 1-9, Play Area 1-7, Padel Court 1-3, Water
-  Fountain, Basketball & Volleyball Court: non-interactive copper pills, names in `AppStrings.amenity`;
-  Figma's "Pedal"/"Volly" typos fixed). Tapping a building's outline or id label opens it. Figma's
+  sub-path each) and `masterplanAmenities` (Green Area 1-9, Children's Playground 1-7 = Figma's
+  "Play Area", Padel Court 1-3, Water Fountain, Basketball and Volleyball Court: non-interactive
+  copper pills, names in `AppStrings.amenity` per the content doc). Tapping a building's outline or id label opens it. Figma's
   Amenities nav tab is hidden in the frame, so it is not built. Types/counts
   come from `assets/data/building_details.json` via `BuildingType.loadAll()`
   (`lib/data/building_data.dart`), which also attaches each type's floors
@@ -230,6 +230,8 @@ Behaviour (not in Figma):
 - Haptic + subtle sound on every interaction via `UiFeedback` (`lib/services/ui_feedback.dart`).
 
 ## Rules
+- Content source of truth for names and copy (EN/AR): the Google Doc "Mashael Al Fursan_ Arabic
+  Content" (`1n60BtryCBPATok7z3AW-tyGkK63FqliPlZL5VVUOl4M`). Where it and Figma disagree, the doc wins.
 - Interaction feedback: call `UiFeedback.tap/select/dismiss/step/success/error()` (haptic + a
   quiet sound synthesised in code, no audio assets, `audioplayers`); never call `HapticFeedback`
   directly. `GlassIconButton`, `PillButton`, `PanelCloseButton` and `LanguageToggle` already do

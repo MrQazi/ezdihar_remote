@@ -758,7 +758,9 @@ class _AmenityLabel extends StatelessWidget {
     final strings = AppStrings.of(context);
     return Container(
       constraints: BoxConstraints(maxWidth: width),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      // Figma pads 16 all round; 10 at the sides leaves room for the content
+      // doc's longer names in the Figma widths.
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.amenityLabel,
         borderRadius: BorderRadius.circular(49),
