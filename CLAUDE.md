@@ -36,8 +36,9 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
     https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan?node-id=652-2&m=dev
 - Transition videos (Building A / B / C subfolders, "Frame n.mp4" = view n -> n+1, plus a
   "Complete Building X Orbit" of all frames): https://drive.google.com/drive/folders/1Mgj190kdfRQNlmUGu3u4VwiIWF49gT2H
-- Exterior stills e1..e9 (first link given for the videos; holds only JPEG renders, not used):
-  https://drive.google.com/drive/folders/1E8GYBkBW4C1YqJ2whp9Q3ZQ-8kJRyIcq
+- Gallery images e1..e9 (project renders, 3840x2160; the masterplan Gallery panel shows them as
+  `assets/images/masterplan/gallery_<n>.jpg`, e1 still missing: 22 MB, over the Drive
+  connector's 10 MB download limit): https://drive.google.com/drive/folders/1E8GYBkBW4C1YqJ2whp9Q3ZQ-8kJRyIcq
 - Floor plans (3D, one per building type + unit type): https://drive.google.com/drive/folders/1DYwiqcwQXYNPTUsr61zN9RYmiJuHDEzq
   - Type A https://drive.google.com/drive/folders/1Zg_H1PlaU1mQmqU_5ZUymp4TkWk1l-o1
   - Type B https://drive.google.com/drive/folders/1_947HYnb48cu3DgsoTpicYucQ1Uf01eL
@@ -85,7 +86,9 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   doc (`AppStrings.landmarkDescription(id)`); the distance (28 km / 26 min) is still a Figma
   placeholder shared by every landmark (`_Landmark.km/minutes`).
 - `MasterplanScreen` (Figma 24:1403 + Filters 49:5630 + Gallery 49:6205): bottom nav
-  = Filters|Gallery tabs; rotate-left / rotate-right buttons sit at the screen sides,
+  = Filters|Gallery tabs (the Gallery panel scrolls one tile per client render, `gallery_2..9.jpg`
+  = Drive e2..e9 at full size, decoded at 768px wide for the tiles via `ResizeImage`; the tile's
+  modal id `gallery_<n>` follows the file name); rotate-left / rotate-right buttons sit at the screen sides,
   vertically centred (Figma 225:542 / 225:526, as on the building screen). Tabs are mutually exclusive
   panel toggles (tap active tab or X closes). Rotate buttons slide the zoomed
   aerial image (placeholder for 360 frames); reset button (bottom-end) is the Restart
