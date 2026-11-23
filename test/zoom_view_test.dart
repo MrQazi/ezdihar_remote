@@ -1,25 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ezdihar_remote/widgets/rotating_view.dart';
+import 'package:ezdihar_remote/widgets/zoom_view.dart';
 
 void main() {
-  late List<int> steps;
   late int taps;
-  final key = GlobalKey<RotatingViewState>();
+  final key = GlobalKey<ZoomViewState>();
 
   Future<void> pumpView(WidgetTester tester) async {
-    steps = [];
     taps = 0;
     tester.view.physicalSize = const Size(1000, 600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
-      home: RotatingView(
+      home: ZoomView(
         key: key,
-        turns: 0,
-        maxTurns: 3,
-        onStep: steps.add,
         child: Stack(children: [
           const Positioned.fill(child: ColoredBox(color: Colors.green)),
           Positioned(
@@ -38,6 +33,8 @@ void main() {
     ));
   }
 
+  Rect button(WidgetTester tester) => tester.getRect(find.byKey(const ValueKey('button')));
+
   Future<void> doubleTapAt(WidgetTester tester, Offset at) async {
     await tester.tapAt(at);
     await tester.pump(const Duration(milliseconds: 100));
@@ -45,15 +42,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('at rest the child is shown exactly as laid out', (tester) async {
+    await pumpView(tester);
+    expect(button(tester), const Rect.fromLTWH(480, 280, 40, 40));
+  });
+
   testWidgets('double-tap toggles 2x zoom', (tester) async {
     await pumpView(tester);
     await doubleTapAt(tester, const Offset(200, 150));
     expect(key.currentState!.isZoomed, isTrue);
     await doubleTapAt(tester, const Offset(200, 150));
     expect(key.currentState!.isZoomed, isFalse);
+    expect(button(tester), const Rect.fromLTWH(480, 280, 40, 40));
   });
 
-  testWidgets('pinch zooms and the button stays tappable', (tester) async {
+  testWidgets('pinch zooms, the button stays tappable and one finger pans', (tester) async {
     await pumpView(tester);
     final a = await tester.startGesture(const Offset(450, 300));
     final b = await tester.startGesture(const Offset(550, 300), pointer: 2);
@@ -71,21 +74,21 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('button')));
     expect(taps, 1);
 
-    // A one-finger drag while zoomed pans and does not rotate.
-    await tester.dragFrom(const Offset(300, 300), const Offset(200, 0));
+    final before = button(tester);
+    await tester.dragFrom(const Offset(300, 300), const Offset(100, 0));
     await tester.pumpAndSettle();
-    expect(steps, isEmpty);
+    expect(button(tester).left, greaterThan(before.left));
 
     key.currentState!.resetZoom();
     await tester.pumpAndSettle();
     expect(key.currentState!.isZoomed, isFalse);
   });
 
-  testWidgets('a drag at 1x still rotates', (tester) async {
+  testWidgets('a one-finger drag at 1x moves nothing', (tester) async {
     await pumpView(tester);
     await tester.dragFrom(const Offset(500, 300), const Offset(-200, 0));
     await tester.pumpAndSettle();
-    expect(steps, isNotEmpty);
     expect(key.currentState!.isZoomed, isFalse);
+    expect(button(tester), const Rect.fromLTWH(480, 280, 40, 40));
   });
 }

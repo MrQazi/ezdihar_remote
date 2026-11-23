@@ -86,17 +86,19 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   doc (`AppStrings.landmarkDescription(id)`); the distance (28 km / 26 min) is still a Figma
   placeholder shared by every landmark (`_Landmark.km/minutes`).
 - `MasterplanScreen` (Figma 24:1403 + Filters 49:5630 + Gallery 49:6205): bottom nav
-  = Filters|Gallery tabs (the Gallery panel scrolls one tile per client render, `gallery_1..9.jpg`
-  = Drive e1..e9 at full size, decoded at 768px wide for the tiles via `ResizeImage`; the tile's
-  modal id `gallery_<n>` follows the file name); rotate-left / rotate-right buttons sit at the screen sides,
-  vertically centred (Figma 225:542 / 225:526, as on the building screen). Tabs are mutually exclusive
-  panel toggles (tap active tab or X closes). Rotate buttons slide the zoomed
-  aerial image (placeholder for 360 frames); reset button (bottom-end) is the Restart
+  = Filters|Gallery tabs (the Gallery panel scrolls one tile per client render, Drive e1..e9 at
+  full size: e1 is `background.jpg` (the map), e2..e9 `gallery_2..9.jpg`; decoded at 768px wide for
+  the tiles via `ResizeImage`; modal ids `gallery_1..9`). No rotation (the new Figma frame has no
+  rotate buttons): the map is zoom/pan only. Tabs are mutually exclusive
+  panel toggles (tap active tab or X closes). The reset button (bottom-end) is the Restart
   button: pops the stack to the first page (`InitialScreen`). Filter state is held locally (no unit data yet).
   Assets in `assets/images/masterplan/`.
 - Masterplan buildings (Figma 648:1892 en / 648:1344 ar): the aerial render
-  `background.jpg` (Figma's original upload, 4096x2304, cover-scaled) on the 1920x1080 frame, inside
-  `RotatingView` so everything moves with it. `lib/data/masterplan_data.dart` holds the Figma
+  `background.jpg` (Drive gallery "e1", 7680x4320, the same framing as Figma's 4096x2304 render at
+  twice the resolution, cover-scaled) on the 1920x1080 frame, inside `ZoomView`
+  (`lib/widgets/zoom_view.dart`) so everything zooms with it; at 1x it is exactly Figma 648:1892.
+  Amenity pills use a grouped 40px backdrop blur (`BackdropGroup` + `BackdropFilter.grouped`), as in
+  Figma. The image cache is raised to 400 MB in `main()` so the ~133 MB decoded map stays cached. `lib/data/masterplan_data.dart` holds the Figma
   placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
   traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
   sub-path each) and `masterplanAmenities` (Green Area 1-9, Children's Playground 1-7 = Figma's
@@ -168,12 +170,10 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
     dimmed when filtered out (building type, plus floor / size / availability select apartments:
     a building is lit when one of its apartments passes all of them; slider bounds come from the floor
     levels and apartment areas in the data). Chip shows "N of 22 match" / no-match with Clear filters / load error with Retry.
-    Drag the map (pans 1:1 with the finger, snaps to the nearest step on release) or hold a
-    rotate button (`GlassIconButton.repeatEvery`) to rotate; arrow keys rotate, Esc closes the
-    panel. Pinch zooms 1x..3x around the fingers, double-tap toggles 2x at that point / 1x, and
-    while zoomed one finger pans freely (no rotation); the zoom wraps the map so building buttons
-    stay put and tappable. Rotate buttons/keys and opening a building reset to 1x
-    (`RotatingViewState.resetZoom`). Double-tap is detected on raw pointers so building taps
+    Esc closes the panel. Pinch zooms 1x..3x around the fingers, double-tap toggles 2x at that
+    point / 1x, and while zoomed one finger pans freely (at 1x a one-finger drag does nothing); the
+    zoom wraps the map so building buttons stay put and tappable. Opening a building resets to 1x
+    (`ZoomViewState.resetZoom`). Double-tap is detected on raw pointers so building taps
     are not delayed. The Restart button (bottom-end) is an icon + "Restart" pill, as on the building screen.
     The Filters panel always reserves the Clear filters slot so it does not resize (QA #03).
   - Building detail: `_Breadcrumb` (Masterplan > Building > Floor), `_FloorStepper` (up/down
@@ -227,8 +227,8 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   `HideModal` on close. A new state also closes the modal. `PlayerConnection` drops repeats and resends the state
   + modal on every (re)connect. New screens/panels: wrap them in `MirrorState` and add the state to
   the player's `Assets/Experiences/ezdihar/config.json`.
-- `RotatingView` (`lib/widgets/rotating_view.dart`) is the shared slide/zoom
-  stand-in for 360 frames. `GlassIconButton` takes `padding` for a pill with
+- `ZoomView` (`lib/widgets/zoom_view.dart`): pinch / double-tap zoom with free pan for a
+  full-screen child, exact layout at 1x. `GlassIconButton` takes `padding` for a pill with
   icon + label.
 
 ## Intentional overrides of the Figma design (UX review, 2026-10)
@@ -255,8 +255,8 @@ Behaviour (not in Figma):
   auto-dismiss (8s); extra "Browse more units" button on the thank-you screen.
 - `confirmRestart` dialog before Restart on masterplan and building screens.
 - Masterplan: first-visit pulse + "Tap a building" hint chip, filter-driven dimming and
-  match-count / no-match / error chip, "Clear filters" in the Filters panel, drag-to-rotate,
-  hold-to-spin, arrow/Esc keys, pinch / double-tap zoom with free pan.
+  match-count / no-match / error chip, "Clear filters" in the Filters panel, Esc key,
+  pinch / double-tap zoom with free pan.
 - Building detail: breadcrumb in the header, floor stepper (up/down) while a floor is selected,
   floor tooltips, "Tap a floor" hint, collapse chevron (not X) on the Building/Floor info panel,
   layered Back/Esc via `PopScope`, animated panel swaps, bedrooms label on apartment cards,

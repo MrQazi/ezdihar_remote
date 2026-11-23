@@ -20,7 +20,7 @@ import '../widgets/language_toggle.dart';
 import '../widgets/mirror_state.dart';
 import '../widgets/panel_close_button.dart';
 import '../widgets/restart_dialog.dart';
-import '../widgets/rotating_view.dart';
+import '../widgets/zoom_view.dart';
 import '../widgets/status_chip.dart';
 import 'building_detail_screen.dart';
 
@@ -49,13 +49,8 @@ class MasterplanScreen extends StatefulWidget {
 class _MasterplanScreenState extends State<MasterplanScreen> {
   static const _assets = 'assets/images/masterplan';
 
-  /// Holding a rotate button keeps turning, one step per this interval.
-  static const _holdRepeat = Duration(milliseconds: 450);
-  static const _maxTurns = 3;
-
   _MasterplanPanel? _panel;
-  int _turns = 0;
-  final _view = GlobalKey<RotatingViewState>();
+  final _view = GlobalKey<ZoomViewState>();
 
   // Filter state. The filters select apartments; a building is lit when it has
   // at least one apartment that passes all of them. null = the full range.
@@ -191,19 +186,6 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
     });
   }
 
-  /// Rotate buttons and arrow keys: back to 1x, then turn.
-  void _rotate(int delta) {
-    _view.currentState?.resetZoom();
-    _onStep(delta);
-  }
-
-  /// A drag on the map settled on a new step (only at 1x).
-  void _onStep(int delta) {
-    _dismissHint();
-    UiFeedback.step();
-    setState(() => _turns = (_turns + delta).clamp(-_maxTurns, _maxTurns));
-  }
-
   /// Restart: confirm, then clear the stack and return to the first page.
   void _reset() => confirmRestart(context);
 
@@ -217,8 +199,6 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
       state: 'masterplan',
       child: CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.arrowLeft): () => _rotate(-1),
-        const SingleActivator(LogicalKeyboardKey.arrowRight): () => _rotate(1),
         const SingleActivator(LogicalKeyboardKey.escape): () => _setPanel(null),
       },
       child: Focus(
@@ -227,11 +207,9 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          RotatingView(
+          // At 1x the map is exactly Figma 648:1892; pinch / double-tap zoom in.
+          ZoomView(
             key: _view,
-            turns: _turns,
-            maxTurns: _maxTurns,
-            onStep: _onStep,
             child: _MapCanvas(
               buildings: spots,
               onSelect: _openBuilding,
@@ -301,32 +279,6 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
                         onSelect: _togglePanel,
                       ),
                     ],
-                  ),
-                ),
-                // Figma 225:542 / 225:526: rotate buttons at the screen sides,
-                // vertically centred. Physical left/right: must not mirror in RTL.
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: GlassIconButton(
-                    size: 48,
-                    repeatEvery: _holdRepeat,
-                    tooltip: strings.rotateLeft,
-                    onPressed: () => _rotate(-1),
-                    child: SvgPicture.asset('$_assets/icon_rotate.svg'),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GlassIconButton(
-                    size: 48,
-                    repeatEvery: _holdRepeat,
-                    tooltip: strings.rotateRight,
-                    onPressed: () => _rotate(1),
-                    // Figma uses the same glyph mirrored for the opposite direction.
-                    child: Transform.flip(
-                      flipX: true,
-                      child: SvgPicture.asset('$_assets/icon_rotate.svg'),
-                    ),
                   ),
                 ),
                 Align(
@@ -535,10 +487,11 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
 
   Widget _buildGallery(AppStrings strings) {
     // The project renders from the client's gallery folder (Drive "e1".."e9",
-    // original resolution: e1 7680x4320, the rest 3840x2160), named after their number.
-    const images = [
-      'gallery_1.jpg', 'gallery_2.jpg', 'gallery_3.jpg', 'gallery_4.jpg', 'gallery_5.jpg',
-      'gallery_6.jpg', 'gallery_7.jpg', 'gallery_8.jpg', 'gallery_9.jpg',
+    // original resolution), as (asset, main screen id). e1 is the aerial render
+    // the map already uses (background.jpg, 7680x4320); e2..e9 are 3840x2160.
+    final images = [
+      ('background.jpg', 'gallery_1'),
+      for (var n = 2; n <= 9; n++) ('gallery_$n.jpg', 'gallery_$n'),
     ];
     return _GlassPanel(
       radius: 40,
@@ -578,7 +531,7 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
                   itemCount: images.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 16),
                   itemBuilder: (context, i) => _GalleryTile(
-                    image: '$_assets/${images[i]}',
+                    image: '$_assets/${images[i].$1}',
                     selected: i == _selectedImage,
                     onTap: () {
                       UiFeedback.tap();
@@ -586,7 +539,7 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
                       // Main screen: Gallery/<id>.mp4 or .png of the player experience.
                       PlayerConnection.instance.showModal({
                         'kind': 'gallery',
-                        'id': images[i].substring(0, images[i].lastIndexOf('.')),
+                        'id': images[i].$2,
                       });
                     },
                   ),
@@ -670,7 +623,8 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
       clipBehavior: Clip.hardEdge,
       child: SizedBox.fromSize(
         size: masterplanSize,
-        child: Stack(
+        child: BackdropGroup(
+          child: Stack(
           children: [
             const Positioned.fill(
               child: FadeInAsset('assets/images/masterplan/background.jpg'),
@@ -693,6 +647,7 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
               ),
             for (final b in widget.buildings) ..._building(b),
           ],
+          ),
         ),
       ),
     );
@@ -748,22 +703,32 @@ class _AmenityLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    return Container(
-      constraints: BoxConstraints(maxWidth: width),
-      // Figma pads 16 all round; 10 at the sides leaves room for the content
-      // doc's longer names in the Figma widths.
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-      decoration: BoxDecoration(
-        color: AppColors.amenityLabel,
-        borderRadius: BorderRadius.circular(49),
-        border: Border.all(color: AppColors.glassBorder, width: 0.48),
-      ),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: strings.isArabic
-            ? GoogleFonts.notoSansArabic(fontSize: 11, color: Colors.white, height: 1.2)
-            : GoogleFonts.rubik(fontSize: 12, color: Colors.white, height: 1.2, letterSpacing: 0.24),
+    final radius = BorderRadius.circular(49);
+    // Figma: backdrop blur 40 under the translucent copper fill, which is what
+    // makes the pill read as frosted glass over the map. Grouped: the map's
+    // pills share one backdrop pass (BackdropGroup in _MapCanvas).
+    return ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter.grouped(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          constraints: BoxConstraints(maxWidth: width),
+          // Figma pads 16 all round; 10 at the sides leaves room for the content
+          // doc's longer names in the Figma widths.
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.amenityLabel,
+            borderRadius: radius,
+            border: Border.all(color: AppColors.glassBorder, width: 0.48),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: strings.isArabic
+                ? GoogleFonts.notoSansArabic(fontSize: 11, color: Colors.white, height: 1.2)
+                : GoogleFonts.rubik(fontSize: 12, color: Colors.white, height: 1.2, letterSpacing: 0.24),
+          ),
+        ),
       ),
     );
   }

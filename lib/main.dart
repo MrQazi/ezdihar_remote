@@ -18,6 +18,11 @@ Future<void> main() async {
   // Kiosk tablet, 16:9 landscape (1920x1080 canvas): hide status + navigation bars.
   await SystemChrome.setPreferredOrientations(const [DeviceOrientation.landscapeLeft]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  // Images are kept at their original resolution: the masterplan render alone
+  // decodes to ~133 MB (7680x4320) and the building stills to ~33 MB each. The
+  // default 100 MB cache could not hold the masterplan at all, so it would be
+  // decoded again on every visit.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 400 << 20;
   UiFeedback.init(); // pre-load interaction sounds; never blocks startup
   await PlayerConnection.load(); // reconnects to the paired main screen, if any
   runApp(MyApp(localeController: await LocaleController.load()));

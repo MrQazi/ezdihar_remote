@@ -1,50 +1,33 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-/// Slides a slightly zoomed-in [child] sideways for each rotate step. It stands
-/// in for turning the view until real 360 frames exist.
+/// Zoom and pan for a full-screen [child] (the masterplan map). At rest (1x)
+/// the child is shown exactly as laid out, so it matches its Figma frame.
 ///
-/// With [onStep] set, the view also takes gestures:
-/// - At 1x, dragging horizontally pans it with the finger (1:1, clamped to the
-///   rotation slack); on release it settles on the nearest step and reports
-///   the steps moved through [onStep] (negative when dragged right, as the
-///   scene follows the finger).
 /// - Pinch zooms from 1x to [maxZoom] around the fingers; while zoomed in, one
-///   finger pans freely within the view.
+///   finger pans freely, kept within the view. At 1x a one-finger drag does
+///   nothing (there is nothing to pan to).
 /// - Double-tap zooms to [doubleTapZoom] at that point, or back out to 1x.
 ///
 /// The zoom transforms [child] as a whole, so anything placed on it (building
-/// buttons) stays in place and tappable. [RotatingViewState.resetZoom] returns
-/// to 1x (the screen calls it on rotate buttons and when leaving).
-class RotatingView extends StatefulWidget {
-  const RotatingView({
-    super.key,
-    required this.turns,
-    required this.maxTurns,
-    required this.child,
-    this.onStep,
-  });
+/// buttons) stays in place and tappable. [ZoomViewState.resetZoom] returns to
+/// 1x (the screen calls it when opening a building).
+class ZoomView extends StatefulWidget {
+  const ZoomView({super.key, required this.child});
 
-  final int turns;
-  final int maxTurns;
   final Widget child;
-  final ValueChanged<int>? onStep;
 
-  static const _zoom = 1.2;
   static const maxZoom = 3.0;
   static const doubleTapZoom = 2.0;
 
   @override
-  State<RotatingView> createState() => RotatingViewState();
+  State<ZoomView> createState() => ZoomViewState();
 }
 
-class RotatingViewState extends State<RotatingView> {
+class ZoomViewState extends State<ZoomView> {
   static const _animation = Duration(milliseconds: 300);
 
-  /// Finger offset of the rotation drag in progress (null when not dragging).
-  double? _drag;
-
-  /// User zoom on top of the rotation view, and its top-left offset.
+  /// Current zoom and the zoomed child's top-left offset.
   double _scale = 1;
   Offset _offset = Offset.zero;
 
@@ -89,22 +72,22 @@ class RotatingViewState extends State<RotatingView> {
   }
 
   void _onScaleStart(ScaleStartDetails d) {
-    if (d.pointerCount < 2 && !isZoomed) {
-      setState(() => _drag = 0);
-      return;
-    }
+    // One finger at 1x: nothing to pan, leave the touch to the child.
+    if (d.pointerCount < 2 && !isZoomed) return;
     _gestureStartScale = _scale;
     _lastFocal = d.localFocalPoint;
     setState(() => _zooming = true);
   }
 
   void _onScaleUpdate(ScaleUpdateDetails d) {
-    if (_drag != null) {
-      setState(() => _drag = _drag! + d.focalPointDelta.dx);
-      return;
+    if (!_zooming) {
+      // A second finger joined a one-finger touch: start pinching now.
+      if (d.pointerCount < 2) return;
+      _gestureStartScale = _scale / d.scale;
+      _lastFocal = d.localFocalPoint;
+      _zooming = true;
     }
-    if (!_zooming) return;
-    final scale = (_gestureStartScale * d.scale).clamp(1.0, RotatingView.maxZoom);
+    final scale = (_gestureStartScale * d.scale).clamp(1.0, ZoomView.maxZoom);
     setState(() {
       _zoomAround(_lastFocal, scale, pan: d.localFocalPoint - _lastFocal);
       _lastFocal = d.localFocalPoint;
@@ -112,11 +95,7 @@ class RotatingViewState extends State<RotatingView> {
   }
 
   void _onScaleEnd(ScaleEndDetails d) {
-    if (_drag != null) {
-      _settle(d.velocity.pixelsPerSecond.dx);
-    } else if (_zooming) {
-      setState(() => _zooming = false);
-    }
+    if (_zooming) setState(() => _zooming = false);
   }
 
   void _onPointerDown(PointerDownEvent e) =>
@@ -151,44 +130,17 @@ class RotatingViewState extends State<RotatingView> {
     }
     setState(() {
       _zooming = false;
-      _drag = null;
-      _zoomAround(position, RotatingView.doubleTapZoom);
+      _zoomAround(position, ZoomView.doubleTapZoom);
     });
   }
-
-  double get _slack => _size.width * (RotatingView._zoom - 1) / 2;
-
-  double get _base => -_slack * widget.turns / widget.maxTurns;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         _size = constraints.biggest;
-        final slack = _slack;
-        final dragging = _drag != null;
-        final dx = (_base + (_drag ?? 0)).clamp(-slack, slack);
         final zoom = Matrix4.translationValues(_offset.dx, _offset.dy, 0)
           ..scaleByDouble(_scale, _scale, 1, 1);
-        final view = ClipRect(
-          child: TweenAnimationBuilder<Matrix4>(
-            tween: Matrix4Tween(end: zoom),
-            duration: _zooming ? Duration.zero : _animation,
-            curve: Curves.easeOut,
-            builder: (context, value, child) => Transform(transform: value, child: child),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(end: dx),
-              duration: dragging ? Duration.zero : const Duration(milliseconds: 350),
-              curve: Curves.easeOut,
-              builder: (context, value, child) => Transform.translate(
-                offset: Offset(value, 0),
-                child: Transform.scale(scale: RotatingView._zoom, child: child),
-              ),
-              child: widget.child,
-            ),
-          ),
-        );
-        if (widget.onStep == null) return view;
         return Listener(
           onPointerDown: _onPointerDown,
           onPointerUp: _onPointerUp,
@@ -197,25 +149,18 @@ class RotatingViewState extends State<RotatingView> {
             onScaleStart: _onScaleStart,
             onScaleUpdate: _onScaleUpdate,
             onScaleEnd: _onScaleEnd,
-            child: view,
+            child: ClipRect(
+              child: TweenAnimationBuilder<Matrix4>(
+                tween: Matrix4Tween(end: zoom),
+                duration: _zooming ? Duration.zero : _animation,
+                curve: Curves.easeOut,
+                builder: (context, value, child) => Transform(transform: value, child: child),
+                child: widget.child,
+              ),
+            ),
           ),
         );
       },
     );
-  }
-
-  /// Snaps the rotation drag to the nearest step (a fling carries one step
-  /// further).
-  void _settle(double velocity) {
-    final slack = _slack;
-    final base = _base;
-    final dx = (base + (_drag ?? 0)).clamp(-slack, slack);
-    final perStep = slack / widget.maxTurns;
-    var steps = perStep == 0 ? 0 : ((base - dx) / perStep).round();
-    if (velocity.abs() > 600 && steps == 0) steps = velocity > 0 ? -1 : 1;
-    final turns = (widget.turns + steps).clamp(-widget.maxTurns, widget.maxTurns);
-    setState(() => _drag = null);
-    final delta = turns - widget.turns;
-    if (delta != 0) widget.onStep!(delta);
   }
 }
