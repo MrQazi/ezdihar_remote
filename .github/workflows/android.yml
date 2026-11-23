@@ -1,19 +1,29 @@
 name: Android build
 
-# Only a push to the `release` branch (or a manual run) builds; every such build becomes a release.
-# To release: fast-forward `release` to main and push it.
-# main, pull requests and other branches are verified locally (flutter analyze + tests).
+# Every push to main (and every PR into main) is verified: analyze, test, build the APK.
+# A push to `release` builds the same way and publishes a GitHub release, but only for a
+# commit whose main run passed. To release: push to main, wait for its run to pass, then
+# fast-forward `release` to that commit and push it.
 on:
   push:
-    branches: [release]
+    branches: [main, release]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: android-${{ github.ref }}
-  cancel-in-progress: false
+  # Newer pushes to main supersede older checks; release builds always finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/release' }}
 
 permissions:
   contents: write
+  actions: read
+
+env:
+  # Pinned so a new stable Flutter (and its Android toolchain minimums) cannot break a
+  # release unannounced. Bump it on main together with android/ (Gradle, AGP, Kotlin).
+  FLUTTER_VERSION: '3.50.1'
 
 jobs:
   build:
@@ -21,6 +31,18 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+
+      - name: Release only what passed on main
+        if: github.ref == 'refs/heads/release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow android.yml --branch main \
+            --commit "$GITHUB_SHA" --event push --limit 1 --json conclusion --jq '.[0].conclusion // ""')"
+          if [[ "$conclusion" != "success" ]]; then
+            echo "::error::Commit $GITHUB_SHA has no successful main run (got '${conclusion:-none}'). Push it to main and wait for it to pass first."
+            exit 1
+          fi
 
       - uses: actions/setup-java@v4
         with:
@@ -30,6 +52,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Install dependencies
@@ -38,7 +61,11 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
+      - name: Test
+        run: flutter test
+
       - name: Set up release signing
+        if: github.event_name != 'pull_request'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -69,15 +96,16 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk "dist/$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "tag=v${version}-build${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          echo "Built \`$name\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Built \`$name\` ($(du -h "dist/$name" | cut -f1))" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.apk.outputs.name }}
           path: dist/${{ steps.apk.outputs.name }}
-          retention-days: 30
+          retention-days: ${{ github.ref == 'refs/heads/release' && 30 || 7 }}
 
       - name: Publish GitHub release
+        if: github.ref == 'refs/heads/release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -275,10 +275,13 @@ Behaviour (not in Figma):
 - Always make code/file changes with direct edits (the Edit/Write tools), never
   with ad-hoc scripts (Python, sed, PowerShell rewrites, etc.).
 - Run `flutter analyze` before finishing.
-- CI (`.github/workflows/android.yml`) runs only on a push to the `release` branch (or a manual
-  run) and publishes a release (each run uses a build number). "Make a release" = fast-forward
-  `release` to the latest `main` and push it. main, PRs and other branches get no CI build:
-  verify locally with `flutter analyze` and `flutter test`.
+- CI (`.github/workflows/android.yml`, Flutter pinned by `FLUTTER_VERSION`) runs analyze + test +
+  release APK build on every push to `main`, every PR into `main` and every push to `release`; only
+  a `release` push publishes a GitHub release (each run uses a build number), and it refuses a
+  commit without a successful `main` run. "Make a release" = push to `main`, wait for that run to
+  pass, then fast-forward `release` to that commit and push it. Bumping Flutter means bumping
+  Gradle / AGP / Kotlin in `android/` to its minimums (Flutter 3.50: Gradle 9.5.0, AGP 9.3.1,
+  Kotlin 2.4.20) in the same change. Still run `flutter analyze` and `flutter test` locally first.
 
 ## Keep this file current
 When a screen, shared widget, token or convention is added, update the sections above.
