@@ -534,11 +534,10 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
   }
 
   Widget _buildGallery(AppStrings strings) {
-    // The project renders from the client's gallery folder (Drive "e2".."e9",
-    // original 3840x2160), named after their number; "e1" (gallery_1) is not
-    // in the app yet (over the Drive connector's download limit).
+    // The project renders from the client's gallery folder (Drive "e1".."e9",
+    // original resolution: e1 7680x4320, the rest 3840x2160), named after their number.
     const images = [
-      'gallery_2.jpg', 'gallery_3.jpg', 'gallery_4.jpg', 'gallery_5.jpg',
+      'gallery_1.jpg', 'gallery_2.jpg', 'gallery_3.jpg', 'gallery_4.jpg', 'gallery_5.jpg',
       'gallery_6.jpg', 'gallery_7.jpg', 'gallery_8.jpg', 'gallery_9.jpg',
     ];
     return _GlassPanel(
@@ -1303,8 +1302,8 @@ class _GalleryTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // The originals are 3840x2160: decode them at thumbnail size (768
-              // wide still covers the tile at 2560x1440) instead of ~33 MB each.
+              // The originals are 3840 / 7680 wide: decode them at thumbnail size
+              // (768 wide still covers the tile at 2560x1440) instead of 33-133 MB each.
               Image(
                 image: ResizeImage(AssetImage(image), width: 768, policy: ResizeImagePolicy.fit),
                 fit: BoxFit.cover,
