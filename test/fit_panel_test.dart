@@ -39,19 +39,19 @@ void main() {
   }
 
   testWidgets('takes the same share of the screen as in the Figma frame', (tester) async {
-    final r = await panelRect(tester, const Size(1920, 1200), 1.5);
+    final r = await panelRect(tester, const Size(1920, 1080), 1.5);
     expect(r.width, closeTo(600 / 1920, 1e-6));
-    expect(r.height, closeTo(400 / 1200, 1e-6));
+    expect(r.height, closeTo(400 / 1080, 1e-6));
   });
 
-  testWidgets('is the same on every 16:10 screen', (tester) async {
-    final reference = await panelRect(tester, const Size(1920, 1200), 1.5);
+  testWidgets('is the same on every 16:9 screen', (tester) async {
+    final reference = await panelRect(tester, const Size(1920, 1080), 1.5);
     for (final (physical, ratio) in [
-      (const Size(1280, 800), 1.0),
-      (const Size(1920, 1200), 1.0),
-      (const Size(1920, 1200), 2.0),
-      (const Size(2560, 1600), 2.0),
-      (const Size(2560, 1600), 1.0),
+      (const Size(1280, 720), 1.0),
+      (const Size(1920, 1080), 1.0),
+      (const Size(1920, 1080), 2.0),
+      (const Size(2560, 1440), 2.0),
+      (const Size(2560, 1440), 1.0),
     ]) {
       final r = await panelRect(tester, physical, ratio);
       expect(r.left, closeTo(reference.left, 1e-6));

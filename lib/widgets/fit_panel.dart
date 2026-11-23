@@ -8,7 +8,8 @@ import 'app_canvas.dart';
 /// Sizes a fixed-size glass panel (authored in Figma pixels) to the screen.
 ///
 /// The panel is first scaled by [designScale], so it takes the same share of
-/// the [AppCanvas] as in the 1920x1081 Figma frame. It is then scaled down
+/// the [AppCanvas] as in the 1920x1080 Figma frame (1 while the canvas is the
+/// Figma frame size). It is then scaled down
 /// further (never up) so it takes at most [maxWidthFactor] x [maxHeightFactor]
 /// of the screen and the background stays visible.
 class FitPanel extends StatelessWidget {
@@ -26,7 +27,7 @@ class FitPanel extends StatelessWidget {
   final AlignmentGeometry alignment;
 
   /// Figma frame the panels are authored on.
-  static const designSize = Size(1920, 1081);
+  static const designSize = Size(1920, 1080);
 
   /// Canvas pixels per Figma pixel. Constant: the canvas is the same on
   /// every screen.

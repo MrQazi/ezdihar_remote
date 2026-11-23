@@ -10,7 +10,7 @@ abstract final class AppColors {
   /// Masterplan amenity label fill (C07F4E @ 20%).
   static const amenityLabel = Color(0x33C07F4E);
 
-  /// Bars around the app canvas on screens that are not 16:10.
+  /// Bars around the app canvas on screens that are not 16:9.
   static const letterbox = Color(0xFF000000);
 
   /// Dark brown frosted-glass fill (brown @ 64%) used by pills and icon buttons.

@@ -10,7 +10,7 @@ import 'package:ezdihar_remote/widgets/app_canvas.dart';
 
 void main() {
   Future<Rect> pumpCity(WidgetTester tester, {String locale = 'en'}) async {
-    tester.view.physicalSize = const Size(1920, 1200);
+    tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(

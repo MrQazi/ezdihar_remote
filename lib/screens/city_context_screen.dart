@@ -13,7 +13,7 @@ import '../theme/app_text.dart';
 import '../widgets/fit_panel.dart';
 import '../widgets/glass_icon_button.dart';
 import '../widgets/language_toggle.dart';
-import '../widgets/map_pin.dart';
+import '../widgets/map_tile.dart';
 import '../widgets/mirror_state.dart';
 import '../widgets/overlay_background.dart';
 import '../widgets/panel_close_button.dart';
@@ -22,7 +22,7 @@ import 'masterplan_screen.dart';
 /// Satellite map of Riyadh showing the project site and nearby landmarks.
 /// Opened from [InitialScreen]'s "Start Journey"; the back button pops to it.
 ///
-/// Figma: "City Context" (node 3:1716), authored on a 1920x1081 canvas. The map
+/// Figma: "City Context" (node 415:2868), authored on a 1920x1080 canvas. The map
 /// is laid out on that canvas and scaled to cover the screen; the header sits
 /// outside the canvas so it stays pinned to the screen edges.
 ///
@@ -35,7 +35,7 @@ class CityContextScreen extends StatefulWidget {
 
   final ValueChanged<Locale> onLocaleChanged;
 
-  static const _canvas = Size(1920, 1081);
+  static const _canvas = Size(1920, 1080);
   static const _assets = 'assets/images/city';
 
   @override
@@ -207,9 +207,10 @@ class _CityContextScreenState extends State<CityContextScreen> {
   }
 }
 
-/// A landmark on the city map: its tile (base state) and its pin (open state)
-/// share one spot, the tile's top-left on the 1920x1081 canvas. Positions,
-/// label widths and sides are from Figma 401:2 .. 401:2018.
+/// A landmark on the city map, drawn as a tile with its name; open, the same
+/// tile is drawn above the dimmed screen (Figma 401:2 .. 401:2018). Tile
+/// top-left, label width and side are from the base frame (Figma 415:2868)
+/// on the 1920x1080 canvas.
 class _Landmark {
   const _Landmark({
     required this.id,
@@ -218,21 +219,19 @@ class _Landmark {
     required this.tileLeft,
     required this.tileTop,
     required this.tileLabelWidth,
-    required this.pinLabelWidth,
-    this.labelSide = PinLabelSide.left,
+    this.labelSide = TileLabelSide.left,
   });
 
   /// Also the photo's file name and the main screen's landmark modal id.
   final String id;
   final String Function(AppStrings) name;
 
-  /// Glyph in a 24x24 box; [tile] is true on the tile, false on the pin.
-  final Widget Function({required bool tile}) icon;
+  /// Glyph in the tile's 24x24 icon box.
+  final Widget icon;
   final double tileLeft;
   final double tileTop;
   final double tileLabelWidth;
-  final double pinLabelWidth;
-  final PinLabelSide labelSide;
+  final TileLabelSide labelSide;
 
   /// Drive from the project. Figma placeholder, the same for every landmark:
   /// replace with each landmark's figures.
@@ -241,9 +240,16 @@ class _Landmark {
 
   String get image => '${CityContextScreen._assets}/landmarks/$id.jpg';
 
-  /// The pin's 48px marker is centred on the 56px tile.
-  double get markerLeft => tileLeft + 4;
-  double get markerTop => tileTop;
+  Widget tile(AppStrings strings, {required VoidCallback onTap}) => MapTile(
+        tileLeft: tileLeft,
+        tileTop: tileTop,
+        labelWidth: tileLabelWidth,
+        labelSide: labelSide,
+        label: name(strings),
+        isArabic: strings.isArabic,
+        icon: icon,
+        onTap: onTap,
+      );
 }
 
 /// Glyph SVG at its natural size, [top] px from the top of the 24x24 slot.
@@ -258,9 +264,9 @@ Widget _glyph(String name, {double top = 0}) => Stack(
   ],
 );
 
-Widget _plane({required bool tile}) => _glyph('icon_tree.svg');
+final _plane = _glyph('icon_tree.svg');
 
-Widget _graduationCap({required bool tile}) => Stack(
+final _graduationCap = Stack(
   clipBehavior: Clip.none,
   children: [
     Positioned(
@@ -271,84 +277,75 @@ Widget _graduationCap({required bool tile}) => Stack(
   ],
 );
 
-Widget _expo({required bool tile}) => tile ? const _ExpoGlyph.tile() : const _ExpoGlyph.pin();
-
 /// In the order of the Figma state frames, which Previous / Next follow.
 final _landmarks = <_Landmark>[
   _Landmark(
     id: 'king_salman_airport',
     name: (s) => s.kingSalmanAirport,
     icon: _plane,
-    tileLeft: 894,
-    tileTop: 142,
+    tileLeft: 928,
+    tileTop: 115,
     tileLabelWidth: 166,
-    pinLabelWidth: 178,
   ),
   _Landmark(
     id: 'equestrian_club',
     name: (s) => s.equestrianClub,
-    icon: ({required tile}) => _glyph('icon_equestrian.svg', top: 1.908),
-    tileLeft: 1075,
-    tileTop: 150,
+    icon: _glyph('icon_equestrian.svg', top: 1.908),
+    tileLeft: 1135,
+    tileTop: 140,
     tileLabelWidth: 138,
-    pinLabelWidth: 147,
-    labelSide: PinLabelSide.right,
+    labelSide: TileLabelSide.right,
   ),
   _Landmark(
     id: 'king_khalid_airport',
     name: (s) => s.kingKhalidAirport,
     icon: _plane,
-    tileLeft: 855,
-    tileTop: 284,
+    tileLeft: 940,
+    tileTop: 273,
     tileLabelWidth: 166,
-    pinLabelWidth: 179,
   ),
   _Landmark(
     id: 'horse_racing_track',
     name: (s) => s.horseRacingTrack,
-    icon: ({required tile}) => _glyph('icon_horse_racing.svg', top: 0.99),
-    tileLeft: 1175,
-    tileTop: 293,
+    icon: _glyph('icon_horse_racing.svg', top: 0.99),
+    tileLeft: 1229,
+    tileTop: 273,
     tileLabelWidth: 156,
-    pinLabelWidth: 159,
   ),
   _Landmark(
     id: 'khuzam_district',
     name: (s) => s.khuzamDistrict,
-    icon: ({required tile}) => _glyph('icon_house.svg'),
-    tileLeft: 578,
-    tileTop: 410,
+    icon: _glyph('icon_house.svg'),
+    tileLeft: 633,
+    tileTop: 397,
     tileLabelWidth: 138,
-    pinLabelWidth: 141,
-    labelSide: PinLabelSide.right,
+    labelSide: TileLabelSide.right,
   ),
   _Landmark(
     id: 'expo_2030',
     name: (s) => s.expo2030,
-    icon: _expo,
-    tileLeft: 926,
-    tileTop: 540,
+    icon: const _ExpoGlyph(),
+    tileLeft: 1010,
+    tileTop: 520,
     tileLabelWidth: 150,
-    pinLabelWidth: 150,
   ),
   _Landmark(
     id: 'princess_nourah_university',
     name: (s) => s.princessNourahUniversity,
     icon: _graduationCap,
-    tileLeft: 989,
-    tileTop: 657,
+    // Figma flips this one (rotation 180): tile on the left, name on the right.
+    tileLeft: 1071,
+    tileTop: 615,
     tileLabelWidth: 187,
-    pinLabelWidth: 184,
-    labelSide: PinLabelSide.right,
+    labelSide: TileLabelSide.right,
   ),
   _Landmark(
     id: 'imam_university',
     name: (s) => s.imamUniversity,
     icon: _graduationCap,
-    tileLeft: 915,
-    tileTop: 785,
+    tileLeft: 959,
+    tileTop: 735,
     tileLabelWidth: 183,
-    pinLabelWidth: 181,
   ),
 ];
 
@@ -371,13 +368,14 @@ class _MapCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = strings.isArabic;
     return OverlayBackground(
-      image: '$_assets/map_background.png',
+      // Figma 415:2869: the night map (original 3840x2160, scaled by the
+      // cover box) under Figma's edge darkening, radial black 20% -> 59% on a
+      // 1301.7 x 540.5 ellipse.
+      image: '$_assets/map_background.jpg',
       overlayGradient: const RadialGradient(
         radius: 0.5, // of the shorter side: 540.5px vertically, stretched below
-        // Edge darkening eased from Figma's 80% to 56% so more map shows.
-        colors: [Color(0x26000000), Color(0x8F000000)],
+        colors: [Color(0x33000000), Color(0x96000000)],
         transform: _EllipseTransform(scaleX: 1301.7 / 540.5),
       ),
       child: Stack(
@@ -386,8 +384,8 @@ class _MapCanvas extends StatelessWidget {
           // Project site polygon; tapping inside its outline opens the
           // masterplan, like the logo card.
           Positioned(
-            left: 1241.24,
-            top: 256.82,
+            left: 1303.24,
+            top: 251.82,
             width: 186.779,
             height: 251.047,
             child: Stack(
@@ -413,17 +411,7 @@ class _MapCanvas extends StatelessWidget {
           ),
           _ProjectCallout(onTap: onProjectTap),
           for (final (i, landmark) in _landmarks.indexed)
-            if (i != hidden)
-              MapTile(
-                tileLeft: landmark.tileLeft,
-                tileTop: landmark.tileTop,
-                labelWidth: landmark.tileLabelWidth,
-                labelSide: landmark.labelSide,
-                label: landmark.name(strings),
-                isArabic: isArabic,
-                icon: landmark.icon(tile: true),
-                onTap: () => onLandmarkTap(i),
-              ),
+            if (i != hidden) landmark.tile(strings, onTap: () => onLandmarkTap(i)),
         ],
       ),
     );
@@ -431,7 +419,7 @@ class _MapCanvas extends StatelessWidget {
 }
 
 /// The open landmark: dimmed, blurred screen (Figma "Frame 14"), the landmark's
-/// pin on top of it, its card and the Previous / Next buttons.
+/// tile on top of it, its card and the Previous / Next buttons.
 class _Spotlight extends StatelessWidget {
   const _Spotlight({
     super.key,
@@ -492,7 +480,8 @@ class _Spotlight extends StatelessWidget {
             ),
           ),
         ),
-        // The pin on the same canvas as the map, so it lands on its tile.
+        // The open landmark's tile above the dimmed screen, on the same canvas
+        // as the map so it stays in place.
         IgnorePointer(
           child: FittedBox(
             fit: BoxFit.cover,
@@ -508,17 +497,7 @@ class _Spotlight extends StatelessWidget {
                 child: Stack(
                   key: ValueKey(landmark.id),
                   clipBehavior: Clip.none,
-                  children: [
-                    MapPin(
-                      markerLeft: landmark.markerLeft,
-                      markerTop: landmark.markerTop,
-                      labelWidth: landmark.pinLabelWidth,
-                      labelSide: landmark.labelSide,
-                      label: landmark.name(strings),
-                      isArabic: strings.isArabic,
-                      icon: landmark.icon(tile: false),
-                    ),
-                  ],
+                  children: [landmark.tile(strings, onTap: () {})],
                 ),
               ),
             ),
@@ -727,9 +706,10 @@ class _ProjectCallout extends StatelessWidget {
       children: [
         // Leader line, mirrored so it runs from the card down-left to the dot.
         // Line and dot lie over the site polygon: let taps reach it.
+        // Figma 415:2940 (callout frame at 1421, 193).
         Positioned(
-          left: 1366.5,
-          top: 232,
+          left: 1428.5,
+          top: 227,
           child: IgnorePointer(
             child: Transform.flip(
               flipX: true,
@@ -738,15 +718,15 @@ class _ProjectCallout extends StatelessWidget {
           ),
         ),
         Positioned(
-          left: 1359,
-          top: 302.5,
+          left: 1421,
+          top: 297.5,
           child: IgnorePointer(
             child: SvgPicture.asset('$_assets/callout_dot.svg'),
           ),
         ),
         Positioned(
-          left: 1481,
-          top: 198,
+          left: 1543,
+          top: 193,
           child: GestureDetector(
             onTap: () {
               UiFeedback.select();
@@ -814,34 +794,18 @@ class _ProjectLogo extends StatelessWidget {
 }
 
 /// Expo 2030 glyph, assembled from nine vector pieces whose positions are the
-/// Figma insets (top, right, bottom, left as percentages of a box): the 48x55
-/// marker body on the pin, the 56x56 tile on the tile.
+/// Figma insets (top, right, bottom, left as percentages of the 56x56 tile).
 class _ExpoGlyph extends StatelessWidget {
-  const _ExpoGlyph.pin() : _box = const Size(48, 55), _origin = const Offset(11.95, 12), _pieces = _pinPieces;
-  const _ExpoGlyph.tile() : _box = const Size(56, 56), _origin = const Offset(16, 16), _pieces = _tilePieces;
+  const _ExpoGlyph();
 
-  /// Box the insets are relative to, and where this glyph's 24x24 slot sits in it.
-  final Size _box;
-  final Offset _origin;
-  final List<(String, double, double, double, double)> _pieces;
+  /// The tile the insets are relative to, and where the glyph's 24x24 slot sits in it.
+  static const _box = Size(56, 56);
+  static const _origin = Offset(16, 16);
 
   static const _assets = CityContextScreen._assets;
 
-  // (file, top, right, bottom, left) — Figma insets in percent.
-  static const _pinPieces = [
-    ('expo_0.svg', 25.47, 28.80, 56.36, 49.99),
-    ('expo_1.svg', 43.62, 28.82, 38.20, 49.97),
-    ('expo_2.svg', 25.46, 50.00, 56.37, 28.82),
-    ('expo_3.svg', 43.64, 50.00, 38.18, 28.80),
-    ('expo_4.svg', 35.20, 44.43, 47.92, 44.40),
-    ('expo_5.svg', 52.39, 52.86, 38.20, 34.79),
-    ('expo_6.svg', 52.41, 34.82, 38.19, 52.83),
-    ('expo_7.svg', 25.45, 52.86, 65.17, 34.81),
-    ('expo_8.svg', 25.46, 34.84, 65.17, 52.83),
-  ];
-
-  // Figma 401:250 (tile).
-  static const _tilePieces = [
+  // (file, top, right, bottom, left) — Figma insets in percent (415:3020, tile).
+  static const _pieces = [
     ('expo_0.svg', 32.16, 31.83, 50.00, 49.99),
     ('expo_1.svg', 49.99, 31.85, 32.16, 49.98),
     ('expo_2.svg', 32.15, 50.00, 50.01, 31.85),

@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Lays the whole app out on one fixed logical canvas ([size], 16:10) and
-/// scales it uniformly to the screen, so every 16:10 screen shows the same
+/// Lays the whole app out on one fixed logical canvas ([size], 16:9) and
+/// scales it uniformly to the screen, so every 16:9 screen shows the same
 /// layout whatever its resolution or pixel density. Other aspect ratios are
 /// letterboxed (never reflowed).
 ///
-/// The canvas is 1920 wide like the Figma frames, so sizes in code are Figma
-/// pixels and take the same share of the screen as in Figma.
+/// The canvas is the Figma frame size (1920x1080), so sizes in code are Figma
+/// pixels and every screen looks as it does in Figma, with nothing cropped.
 ///
 /// Mounted once from `MaterialApp.builder`, around the navigator, so routes,
 /// dialogs and overlays all live on the canvas.
@@ -20,7 +20,7 @@ class AppCanvas extends StatelessWidget {
   final Widget child;
 
   /// Logical size every screen is laid out on.
-  static const size = Size(1920, 1200);
+  static const size = Size(1920, 1080);
 
   @override
   Widget build(BuildContext context) {

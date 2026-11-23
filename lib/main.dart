@@ -15,7 +15,7 @@ import 'widgets/mirror_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Kiosk tablet (1920x1200, landscape): hide status + navigation bars.
+  // Kiosk tablet, 16:9 landscape (1920x1080 canvas): hide status + navigation bars.
   await SystemChrome.setPreferredOrientations(const [DeviceOrientation.landscapeLeft]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   UiFeedback.init(); // pre-load interaction sounds; never blocks startup

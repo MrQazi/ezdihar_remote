@@ -2,22 +2,30 @@
 
 Flutter app implementing the Figma file
 `7U3uK1v7FRA0dMmKdOSF97` (Ezdihar _ Mashael Al Fursan). Designs are authored on a
-1920x1081 canvas (landscape tablet/desktop), Arabic (RTL) is the default locale.
+1920x1080 canvas (landscape tablet/desktop), Arabic (RTL) is the default locale.
 
-**Target device:** Android tablet, 1920x1200 (16:10), landscape only, fullscreen. `main()` locks
+**Target device:** 16:9 landscape (e.g. 1920x1080), fullscreen. `main()` locks
 landscape + `SystemUiMode.immersiveSticky`; the manifest uses `sensorLandscape` (iOS Info.plist lists
-landscape only + `UIRequiresFullScreen`). Figma canvases
-(1920x1081) are scaled with `BoxFit.cover`, so ~5% of the canvas width is cropped per side at 16:10:
-keep important content inside x = 100..1820 of the canvas.
+landscape only + `UIRequiresFullScreen`). The Figma frames (1920x1080) fill the screen exactly:
+nothing is cropped.
 
 **One canvas for every screen:** `AppCanvas` (`lib/widgets/app_canvas.dart`, mounted in
-`MaterialApp.builder` around everything) lays the whole app out on a fixed 1920x1200 logical canvas
-(1920 wide like the Figma frames, so sizes in code are Figma pixels) and scales it uniformly to the
-screen, so every 16:10
-resolution/density shows the identical layout; other aspects are letterboxed (`AppColors.letterbox`),
-never reflowed. System text scaling is ignored. All logical sizes in code are canvas pixels: never
-size things from the real screen or `devicePixelRatio`. `test/app_canvas_test.dart` checks every
-screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x1600 x 1, 1.5, 2.
+`MaterialApp.builder` around everything) lays the whole app out on a fixed 1920x1080 logical canvas
+(the Figma frame, so sizes in code are Figma pixels) and scales it uniformly to the
+screen, so every 16:9
+resolution/density shows the identical layout; other aspects (e.g. a 16:10 tablet) are letterboxed
+(`AppColors.letterbox`), never reflowed. System text scaling is ignored. All logical sizes in code are
+canvas pixels: never size things from the real screen or `devicePixelRatio`. `test/app_canvas_test.dart`
+checks every screen is identical and text does not overlap at 1280x720 / 1920x1080 / 2560x1440 x 1,
+1.5, 2.
+
+**Image assets at their original resolution:** take Figma images from the asset URLs that
+`get_design_context` returns (the original upload, e.g. 3840x2160 renders, 4096x2304 masterplan),
+never from screenshots/exports (those are capped at the frame size). Keep the source resolution and
+let the layout scale them (`BoxFit.cover` / `FittedBox`); compress (JPEG q92 for opaque photos) but do
+not downscale. A Figma export rendered above its source size (a vector with an image fill comes back
+at 2x) is stored at the fill's source size. Downloading needs www.figma.com, which the `ezdihar_remote`
+cloud environment allows. Full-size stills decode to ~33 MB each: precache only what is needed next.
 
 ## Sources (links shared by the client)
 - Figma file: https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan
@@ -58,14 +66,19 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
 - `lib/screens/` one file per screen. `lib/widgets/` reusable pieces.
   `lib/theme/app_colors.dart` colour tokens. `lib/l10n/app_strings.dart` strings.
 - Reusable: `OverlayBackground` (image + tint/gradient), `PillButton`,
-  `LanguageToggle`, `GlassIconButton` (optional `color` fill), `BrandTitle`, `MapPin`, `MapTile`.
+  `LanguageToggle`, `GlassIconButton` (optional `color` fill), `BrandTitle`, `MapTile` (`lib/widgets/map_tile.dart`).
 - Flow: `InitialScreen` -> (Start Journey, `Navigator.push`) -> `CityContextScreen`
   -> (tap project logo card or the highlighted site polygon, hit-tested on its outline via
   `_SitePolygonClipper`) -> `MasterplanScreen`; back button pops.
-- City context landmarks (Figma 401:2 .. 401:2018, one frame per landmark): the 8 landmarks
-  (`_landmarks`, in the frames' order) are `MapTile`s (square tile + name box). Tapping one opens
-  its state: the whole screen dims and blurs (`AppColors.scrim` + vignette), the landmark is
-  drawn as a `MapPin` centred on its tile, `_LandmarkCard` (photo, name, distance, description)
+- City context (Figma 415:2868 = base layout, the source of truth for the map, tile positions, site
+  polygon, callout and header; the state frames 401:2 .. 401:2018 under it only define the open
+  state, their background tiles are stale): night map `map_background.jpg` (original 3840x2160)
+  under Figma's radial darkening (black 20% -> 59%), site polygon `site_polygon.png` at (1303, 253),
+  logo callout at (1421, 193). The 8 landmarks
+  (`_landmarks`, in the state frames' order) are `MapTile`s (square tile + name box) at the
+  415:2868 positions. Tapping one opens
+  its state: the whole screen dims and blurs (`AppColors.scrim` + vignette), the landmark's own
+  tile is drawn above the dim layer, `_LandmarkCard` (photo, name, distance, description)
   sits bottom-start and Previous / Next (bottom-end, arrow keys too) cycle the landmarks with
   wrap-around. X, a tap on the dimmed map, Back (`PopScope`) or Esc close it. Photos are
   `assets/images/city/landmarks/<id>.jpg`; each landmark's name and description come from the content
@@ -172,14 +185,14 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   - Register form: errors show on blur/submit with messages, autofill hints, next/done
     actions, country-code picker (`+966` default), digits-only phone.
   - Shared: `PanelCloseButton` (32px icon, 48px target; use it for every panel X), `FitPanel`
-    (first scales a glass panel by the constant `FitPanel.designScale` = canvas / 1920x1081
+    (first scales a glass panel by the constant `FitPanel.designScale` = canvas / 1920x1080 (= 1 on the 16:9 canvas)
     Figma frame, so it takes the same share of the screen as in Figma; then
     scales it down to a max screen fraction so the background stays visible; wrap every
     glass panel/toast in it),
     `FadeInAsset`, `StatusChip`, `appText()` (`lib/theme/app_text.dart`). Haptic
     `selectionClick` on glass/pill buttons.
-  - Background visibility: initial screen tint is a radial gradient (64% -> 25%), city map
-    edge darkening 80% -> 56%, modal scrim 80% -> 64%. `AppColors.textSecondary` (white @ 72%)
+  - Background visibility: initial screen tint is a radial gradient (64% -> 25%), modal scrim
+    80% -> 64% (the city map now uses Figma's own lighter darkening). `AppColors.textSecondary` (white @ 72%)
     replaces white @ 64% for secondary text.
 - Main screen link (NarsunPlayer, `ezdhar_main` branch of Qazi-Narsun/NarsunPlayer): the player shows a QR
   of its WebSocket URL (`ws://<lan-ip>:3737/`) on the main screen while no remote is connected (it accepts
@@ -225,7 +238,6 @@ and mention the conflict to the user.
 
 Visual (background visibility):
 - Initial screen tint: radial gradient 60% -> 25% black (Figma: flat 64%).
-- City map edge darkening: 56% (Figma 80%), centre 15%.
 - Modal scrim `AppColors.scrim`: 64% black (Figma 80%).
 - Glass panels are capped by `FitPanel` (max ~60% of screen height, gallery 50%, info/apartment
   panels 45% width); apartment details panel spacing is 32 (Figma 48) and plan image 190 high.

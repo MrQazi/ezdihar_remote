@@ -27,7 +27,7 @@ import 'register_interest_screen.dart';
 /// Exterior view of a single building with an info panel.
 ///
 /// Figma: "Exterior" with the panel open (81:2) and closed (225:184), authored
-/// on a 1920x1081 canvas. Opened from a building button on [MasterplanScreen].
+/// on a 1920x1080 canvas. Opened from a building button on [MasterplanScreen].
 ///
 /// The panel starts open; its collapse button closes it and leaves an info
 /// button at the bottom-start corner that opens it again. Rotate buttons slide
@@ -88,9 +88,17 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // The neighbouring views' stills, so a transition never lands on a blank.
-    for (final v in _views) {
-      precacheImage(AssetImage(v.image), context);
+    _precacheNeighbours();
+  }
+
+  /// Warms up the stills a rotation can land on, so it never lands on a blank.
+  /// Only the two neighbours: the stills are full 3840x2160 renders (~33 MB
+  /// decoded each), so warming every view would push them out of the cache.
+  void _precacheNeighbours() {
+    final n = _views.length;
+    if (n < 2) return;
+    for (final i in {(_view + 1) % n, (_view - 1 + n) % n}) {
+      precacheImage(AssetImage(_views[i].image), context);
     }
   }
 
@@ -199,6 +207,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
       _view = target;
       _target = null;
     });
+    _precacheNeighbours();
     if (clip == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Once unmounted, dispose() has already released it.

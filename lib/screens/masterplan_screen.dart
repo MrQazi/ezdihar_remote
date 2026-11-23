@@ -8,7 +8,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/building_data.dart';
-import '../data/building_views.dart';
 import '../data/masterplan_data.dart';
 import '../l10n/app_strings.dart';
 import '../services/player_connection.dart';
@@ -32,7 +31,7 @@ enum _MasterplanPanel { filters, gallery }
 /// left / right buttons at the screen sides and a reset-view button.
 ///
 /// Figma: "Masterplan" (24:1403), "Masterplan_Filters" (49:5630) and
-/// "Masterplan_Gallery" (49:6205), authored on a 1920x1081 canvas.
+/// "Masterplan_Gallery" (49:6205), authored on a 1920x1080 canvas.
 ///
 /// Navigation behaviour: Filters and Gallery are mutually exclusive toggles.
 /// Tapping an inactive tab opens its panel (replacing the other one); tapping
@@ -101,17 +100,6 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
     super.initState();
     _load();
     _hintTimer = Timer(const Duration(seconds: 12), _dismissHint);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Warm up the next screen's first views so they do not pop in.
-    for (final type in const ['A', 'B', 'C']) {
-      for (final view in BuildingView.of(type).take(1)) {
-        precacheImage(AssetImage(view.image), context);
-      }
-    }
   }
 
   @override

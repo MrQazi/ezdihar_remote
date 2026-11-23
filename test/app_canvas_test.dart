@@ -11,8 +11,8 @@ import 'package:ezdihar_remote/screens/masterplan_screen.dart';
 import 'package:ezdihar_remote/screens/register_interest_screen.dart';
 import 'package:ezdihar_remote/widgets/app_canvas.dart';
 
-/// 16:10 screens: physical size x device pixel ratio.
-const _screens = [Size(1280, 800), Size(1920, 1200), Size(2560, 1600)];
+/// 16:9 screens: physical size x device pixel ratio.
+const _screens = [Size(1280, 720), Size(1920, 1080), Size(2560, 1440)];
 const _ratios = [1.0, 1.5, 2.0];
 
 void main() {
@@ -65,7 +65,7 @@ void main() {
 
   for (final locale in ['ar', 'en']) {
     for (final MapEntry(key: name, value: build) in screens.entries) {
-      testWidgets('$name ($locale) is the same on every 16:10 screen, without overlaps', (tester) async {
+      testWidgets('$name ($locale) is the same on every 16:9 screen, without overlaps', (tester) async {
         List<Rect>? reference;
         for (final physical in _screens) {
           for (final ratio in _ratios) {
@@ -102,8 +102,8 @@ void main() {
     }
   }
 
-  testWidgets('letterboxes a screen that is not 16:10', (tester) async {
-    tester.view.physicalSize = const Size(1920, 1080);
+  testWidgets('letterboxes a screen that is not 16:9', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     late Size canvas;
@@ -119,8 +119,8 @@ void main() {
       ),
     );
     expect(canvas, AppCanvas.size);
-    // 1080 high -> 1728 wide, centred: 96 px bars left and right.
-    expect(tester.getRect(find.byKey(const Key('page'))), const Rect.fromLTWH(96, 0, 1728, 1080));
+    // A 16:10 screen: 1920 wide -> 1080 high, centred: 60 px bars top and bottom.
+    expect(tester.getRect(find.byKey(const Key('page'))), const Rect.fromLTWH(0, 60, 1920, 1080));
   });
 }
 
