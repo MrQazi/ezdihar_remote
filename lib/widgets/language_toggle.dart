@@ -10,10 +10,22 @@ enum AppLanguage { english, arabic }
 
 /// Two-segment pill used to switch between English and Arabic.
 class LanguageToggle extends StatelessWidget {
-  const LanguageToggle({super.key, required this.selected, required this.onChanged});
+  const LanguageToggle({
+    super.key,
+    required this.selected,
+    required this.onChanged,
+    this.darkSelectedText = false,
+  });
 
   final AppLanguage selected;
   final ValueChanged<AppLanguage> onChanged;
+
+  /// Draws the selected segment's label in [AppColors.onLight] (dark on its
+  /// light accent fill) instead of white. Used on the masterplan.
+  final bool darkSelectedText;
+
+  Color _labelColor(AppLanguage language) =>
+      darkSelectedText && selected == language ? AppColors.onLight : Colors.white;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +52,13 @@ class LanguageToggle extends StatelessWidget {
                 onTap: () => onChanged(AppLanguage.english),
                 child: Text(
                   'English',
-                  style: GoogleFonts.rubik(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white, letterSpacing: 0.24, height: 1),
+                  style: GoogleFonts.rubik(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: _labelColor(AppLanguage.english),
+                    letterSpacing: 0.24,
+                    height: 1,
+                  ),
                 ),
               ),
               _Segment(
@@ -50,7 +68,13 @@ class LanguageToggle extends StatelessWidget {
                 child: Text(
                   'العربية',
                   textDirection: TextDirection.rtl,
-                  style: GoogleFonts.notoSansArabic(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.24, height: 1),
+                  style: GoogleFonts.notoSansArabic(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _labelColor(AppLanguage.arabic),
+                    letterSpacing: 0.24,
+                    height: 1,
+                  ),
                 ),
               ),
             ],
