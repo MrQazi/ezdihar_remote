@@ -69,6 +69,11 @@ class AppStrings {
     'masterplan': 'Masterplan',
     'collapse': 'Collapse',
     'tapBuildingHint': 'Tap a building to explore it',
+    'amenity_greenArea': 'Green Area',
+    'amenity_playArea': 'Play Area',
+    'amenity_padelCourt': 'Padel Court',
+    'amenity_waterFountain': 'Water Fountain',
+    'amenity_sportsCourt': 'Basketball & Volleyball Court',
     'tapFloorHint': 'Tap a floor to see its apartments',
     'matchCount': '{n} of {total} buildings match',
     'noMatch': 'No buildings match your filters',
@@ -182,6 +187,11 @@ class AppStrings {
     'masterplan': 'المخطط العام',
     'collapse': 'طيّ',
     'tapBuildingHint': 'اضغط على مبنى لاستكشافه',
+    'amenity_greenArea': 'المنطقة الخضراء',
+    'amenity_playArea': 'منطقة الألعاب',
+    'amenity_padelCourt': 'ملعب البادل',
+    'amenity_waterFountain': 'نافورة مياه',
+    'amenity_sportsCourt': 'ملعب كرة السلة والكرة الطائرة',
     'tapFloorHint': 'اضغط على طابق لعرض شققه',
     'matchCount': '{n} من {total} مبنى مطابق',
     'noMatch': 'لا توجد مبانٍ مطابقة للتصفية',
@@ -356,6 +366,13 @@ class AppStrings {
       _values['matchCount']!.replaceAll('{n}', '$n').replaceAll('{total}', '$total');
   String stillThereBody(int seconds) => _values['stillThereBody']!.replaceAll('{s}', '$seconds');
   String bedrooms(String n) => _values['bedrooms']!.replaceAll('{n}', n);
+
+  /// Masterplan amenity label, e.g. "Green Area 4"; [kind] is an
+  /// `AmenityKind` name.
+  String amenity(String kind, int? number) {
+    final name = _values['amenity_$kind']!;
+    return number == null ? name : '$name $number';
+  }
 }
 
 class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {

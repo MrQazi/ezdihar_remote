@@ -84,6 +84,11 @@ class BuildingType {
   /// Apartment details by type id (e.g. "2BR").
   final Map<String, ApartmentDetails> apartments;
 
+  /// Floor plan of apartment type [unitType] (e.g. "2BR") in this building
+  /// type: `assets/images/apartments/<type>_<unit type>.png`, lower-case.
+  String planAsset(String unitType) =>
+      'assets/images/apartments/${type.toLowerCase()}_${unitType.toLowerCase()}.png';
+
   /// Ids such as A01..A05, derived from [type] and [buildingCount].
   List<String> get buildingIds =>
       [for (var i = 1; i <= buildingCount; i++) '$type${i.toString().padLeft(2, '0')}'];

@@ -8,6 +8,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/building_data.dart';
+import '../data/building_views.dart';
+import '../data/masterplan_data.dart';
 import '../l10n/app_strings.dart';
 import '../services/player_connection.dart';
 import '../services/ui_feedback.dart';
@@ -94,22 +96,6 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
   bool _hintVisible = true;
   Timer? _hintTimer;
 
-  /// Centres of the buildings along the upper lane, left to right, on the
-  /// 2000x1147 aerial photo.
-  static const _laneCentres = [
-    Offset(5, 440), Offset(35, 370), Offset(125, 350), Offset(210, 325),
-    Offset(320, 310), Offset(410, 325), Offset(495, 305), Offset(600, 300),
-    Offset(690, 315), Offset(770, 305), Offset(890, 310), Offset(950, 345),
-    Offset(1160, 345), Offset(1230, 300), Offset(1335, 295), Offset(1430, 310),
-    Offset(1515, 295), Offset(1620, 295), Offset(1720, 300), Offset(1795, 285),
-    Offset(1905, 285), Offset(1990, 295),
-  ];
-
-  /// Lane slots taken by the two large corner buildings (type C). The rest
-  /// are type A first, then type B, in lane order. Placeholder until the real
-  /// building-to-slot mapping is provided.
-  static const _typeCSlots = {10, 13};
-
   @override
   void initState() {
     super.initState();
@@ -120,8 +106,12 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Warm up the next screen's photo so it does not pop in.
-    precacheImage(const AssetImage('assets/images/building/exterior.jpg'), context);
+    // Warm up the next screen's first views so they do not pop in.
+    for (final type in const ['A', 'B', 'C']) {
+      for (final view in BuildingView.of(type).take(1)) {
+        precacheImage(AssetImage(view.image), context);
+      }
+    }
   }
 
   @override
@@ -172,30 +162,13 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
         _buildingTypes.clear();
       });
 
+  /// The Figma buildings (648:1892) whose type is in the data.
   List<_BuildingSpot> _spots() {
-    if (_types.isEmpty) return const [];
-    final queues = {
-      for (final t in _types) t.type: (type: t, ids: t.buildingIds.iterator),
-    };
-    BuildingType? next(String letter) {
-      final q = queues[letter];
-      return q != null && q.ids.moveNext() ? q.type : null;
-    }
-
-    final spots = <_BuildingSpot>[];
-    var aLeft = queues['A']?.type.buildingCount ?? 0;
-    for (var i = 0; i < _laneCentres.length; i++) {
-      final letter = _typeCSlots.contains(i) ? 'C' : (aLeft-- > 0 ? 'A' : 'B');
-      final type = next(letter);
-      if (type == null) continue;
-      spots.add(_BuildingSpot(
-        _laneCentres[i],
-        type,
-        queues[letter]!.ids.current,
-        matched: _matches(type),
-      ));
-    }
-    return spots;
+    final types = {for (final t in _types) t.type: t};
+    return [
+      for (final b in masterplanBuildings)
+        if (types[b.type] case final type?) _BuildingSpot(b, type, matched: _matches(type)),
+    ];
   }
 
   void _openBuilding(BuildingType type, String id) {
@@ -649,22 +622,20 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
       _text(strings, 16, FontWeight.w600, color: AppColors.textSecondary, spacing: -0.16);
 }
 
-/// The aerial photo with one box button per building of the upper lane. Laid
-/// out on the photo's own pixel grid so the buttons stay on their buildings.
+/// The aerial render (Figma 648:1892) with every building of the upper lane
+/// outlined and labelled with its id, plus the amenity labels. Laid out on the
+/// Figma frame so the outlines stay on their buildings.
 class _MapCanvas extends StatefulWidget {
   const _MapCanvas({required this.buildings, required this.onSelect, required this.pulse});
 
   final List<_BuildingSpot> buildings;
   final void Function(BuildingType type, String id) onSelect;
 
-  /// Draws an attention ring around the buttons (first-visit hint).
+  /// Draws an attention ring around the id labels (first-visit hint).
   final bool pulse;
 
-  static const _size = Size(2000, 1147);
-
-  /// Visible box and touch target of a building button, on the photo grid.
-  static const _button = 44.0;
-  static const _target = 64.0;
+  /// Height of an id label's touch target (the label itself is 24 high).
+  static const _labelTarget = 48.0;
 
   @override
   State<_MapCanvas> createState() => _MapCanvasState();
@@ -701,51 +672,198 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
 
   @override
   Widget build(BuildContext context) {
-    const target = _MapCanvas._target;
+    final strings = AppStrings.of(context);
     return FittedBox(
       fit: BoxFit.cover,
       clipBehavior: Clip.hardEdge,
       child: SizedBox.fromSize(
-        size: _MapCanvas._size,
+        size: masterplanSize,
         child: Stack(
           children: [
             const Positioned.fill(
-              child: FadeInAsset('assets/images/masterplan/background.png'),
+              child: FadeInAsset('assets/images/masterplan/background.jpg'),
             ),
-            for (final b in widget.buildings)
+            // Amenities sit under the buildings and never take taps.
+            for (final a in masterplanAmenities)
               Positioned(
-                left: b.center.dx - target / 2,
-                top: b.center.dy - target / 2,
-                width: target,
-                height: target,
-                child: _BuildingButton(
-                  label: b.id,
-                  matched: b.matched,
-                  pulse: _pulse,
-                  onTap: () => widget.onSelect(b.type, b.id),
+                left: a.center.dx - 100,
+                top: a.center.dy - 50,
+                width: 200,
+                height: 100,
+                child: IgnorePointer(
+                  child: Center(
+                    child: _AmenityLabel(
+                      label: strings.amenity(a.kind.name, a.number),
+                      width: strings.isArabic ? a.widthAr : a.widthEn,
+                    ),
+                  ),
                 ),
               ),
+            for (final b in widget.buildings) ..._building(b),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// A building's outline and its id label, both opening the building.
+  List<Widget> _building(_BuildingSpot b) {
+    void open() => widget.onSelect(b.type, b.building.id);
+    final outline = b.building.outline.path();
+    final box = outline.getBounds();
+    final label = b.building.label;
+    const target = _MapCanvas._labelTarget;
+    return [
+      Positioned.fromRect(
+        rect: box,
+        child: _BuildingOutline(path: outline.shift(-box.topLeft), matched: b.matched, onTap: open),
+      ),
+      // The label's touch target grows to 48 high around the 24px label.
+      Positioned(
+        left: label.left,
+        top: label.center.dy - target / 2,
+        width: label.width,
+        height: target,
+        child: _BuildingButton(
+          label: b.building.id,
+          matched: b.matched,
+          pulse: _pulse,
+          onTap: open,
+        ),
+      ),
+    ];
+  }
+}
+
+class _BuildingSpot {
+  const _BuildingSpot(this.building, this.type, {this.matched = true});
+
+  final MasterplanBuilding building;
+  final BuildingType type;
+
+  /// False when the active filters exclude this building (it is dimmed).
+  final bool matched;
+}
+
+/// Amenity label (Figma 648:2209): a translucent copper pill, text wrapped
+/// to the Figma label's width. Not interactive.
+class _AmenityLabel extends StatelessWidget {
+  const _AmenityLabel({required this.label, required this.width});
+
+  final String label;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    return Container(
+      constraints: BoxConstraints(maxWidth: width),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.amenityLabel,
+        borderRadius: BorderRadius.circular(49),
+        border: Border.all(color: AppColors.glassBorder, width: 0.48),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: strings.isArabic
+            ? GoogleFonts.notoSansArabic(fontSize: 11, color: Colors.white, height: 1.2)
+            : GoogleFonts.rubik(fontSize: 12, color: Colors.white, height: 1.2, letterSpacing: 0.24),
+      ),
+    );
+  }
+}
+
+/// The orange outline traced over a building (Figma Vector 54..77). Only the
+/// shape takes taps; it fills in on hover/press and dims with the id label.
+class _BuildingOutline extends StatefulWidget {
+  const _BuildingOutline({required this.path, required this.matched, required this.onTap});
+
+  /// The outline, relative to this widget's box (its bounds).
+  final Path path;
+  final bool matched;
+  final VoidCallback onTap;
+
+  @override
+  State<_BuildingOutline> createState() => _BuildingOutlineState();
+}
+
+class _BuildingOutlineState extends State<_BuildingOutline> {
+  bool _active = false;
+
+  void _set(bool active) => setState(() => _active = active);
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipPath(
+      clipper: _ShapeClipper(widget.path),
+      clipBehavior: Clip.none,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => _set(true),
+        onExit: (_) => _set(false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => _set(true),
+          onTapCancel: () => _set(false),
+          onTap: () {
+            _set(false);
+            UiFeedback.select();
+            widget.onTap();
+          },
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: widget.matched ? 1 : 0.35,
+            child: CustomPaint(
+              size: Size.infinite,
+              painter: _ShapePainter(widget.path, fill: _active ? 0.6 : 0.28),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _BuildingSpot {
-  const _BuildingSpot(this.center, this.type, this.id, {this.matched = true});
+class _ShapeClipper extends CustomClipper<Path> {
+  const _ShapeClipper(this.path);
 
-  final Offset center;
-  final BuildingType type;
-  final String id;
+  final Path path;
 
-  /// False when the active filters exclude this building (it is dimmed).
-  final bool matched;
+  @override
+  Path getClip(Size size) => path;
+
+  @override
+  bool shouldReclip(_ShapeClipper old) => old.path != path;
 }
 
-/// Building box button: 44px visible box in a larger touch target, with hover
-/// and press feedback, a pulse ring while the hint is showing, and a dimmed
-/// look when filtered out (it stays tappable).
+/// Figma building outline: orange fill (28%) and a 64% hairline stroke.
+class _ShapePainter extends CustomPainter {
+  const _ShapePainter(this.path, {required this.fill});
+
+  final Path path;
+  final double fill;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(path, Paint()..color = AppColors.floorOutline.withValues(alpha: fill));
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = AppColors.floorOutline.withValues(alpha: 0.64)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ShapePainter old) => old.path != path || old.fill != fill;
+}
+
+/// Building id label (Figma 648:1986): a dark glass pill in a 48px-high touch
+/// target, with hover and press feedback, a pulse ring while the hint is
+/// showing, and a dimmed look when filtered out (it stays tappable).
 class _BuildingButton extends StatefulWidget {
   const _BuildingButton({
     required this.label,
@@ -769,7 +887,7 @@ class _BuildingButtonState extends State<_BuildingButton> {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(8);
+    final radius = BorderRadius.circular(49);
     final active = _hovered || _pressed;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -791,8 +909,9 @@ class _BuildingButtonState extends State<_BuildingButton> {
             duration: const Duration(milliseconds: 200),
             opacity: widget.matched ? 1 : 0.35,
             child: Center(
-              child: SizedBox.square(
-                dimension: _MapCanvas._button,
+              child: SizedBox(
+                height: 24,
+                width: double.infinity,
                 child: Stack(
                   clipBehavior: Clip.none,
                   fit: StackFit.expand,
@@ -806,7 +925,7 @@ class _BuildingButtonState extends State<_BuildingButton> {
                             return Opacity(
                               opacity: widget.pulse.isAnimating ? 1 - t : 0,
                               child: Transform.scale(
-                                scale: 1 + 0.7 * t,
+                                scale: 1 + 0.5 * t,
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(
                                     borderRadius: radius,
@@ -820,17 +939,18 @@ class _BuildingButtonState extends State<_BuildingButton> {
                       ),
                     AnimatedScale(
                       duration: const Duration(milliseconds: 120),
-                      scale: active ? 1.18 : 1,
+                      scale: active ? 1.15 : 1,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: active ? AppColors.accent : AppColors.glass,
                           borderRadius: radius,
-                          border: Border.all(color: AppColors.accent, width: 2),
+                          border: Border.all(color: AppColors.glassBorder, width: 0.48),
                         ),
                         child: Center(
+                          // Ids are Latin in both languages (as in Figma 648:1344).
                           child: Text(
                             widget.label,
-                            style: GoogleFonts.rubik(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                            style: GoogleFonts.rubik(fontSize: 12, color: Colors.white, height: 1, letterSpacing: 0.24),
                           ),
                         ),
                       ),

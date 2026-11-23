@@ -57,37 +57,49 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   aerial image (placeholder for 360 frames); reset button (bottom-end) is the Restart
   button: pops the stack to the first page (`InitialScreen`). Filter state is held locally (no unit data yet).
   Assets in `assets/images/masterplan/`.
-- Masterplan building buttons: one box button per building on the upper lane of
-  the aerial photo (22 slots, positions in `_laneCentres` on the 2000x1147
-  photo grid, inside `RotatingView` so they move with the image). Types/counts
+- Masterplan buildings (Figma 648:1892 en / 648:1344 ar): the aerial render
+  `background.jpg` (Figma's image, only 1376x789 at the source) on the 1920x1080 frame, inside
+  `RotatingView` so everything moves with it. `lib/data/masterplan_data.dart` holds the Figma
+  placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
+  traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
+  sub-path each) and `masterplanAmenities` (Green Area 1-9, Play Area 1-7, Padel Court 1-3, Water
+  Fountain, Basketball & Volleyball Court: non-interactive copper pills, names in `AppStrings.amenity`;
+  Figma's "Pedal"/"Volly" typos fixed). Tapping a building's outline or id label opens it. Figma's
+  Amenities nav tab is hidden in the frame, so it is not built. Types/counts
   come from `assets/data/building_details.json` via `BuildingType.loadAll()`
   (`lib/data/building_data.dart`), which also attaches each type's floors
   (`assets/data/floor_details.json`, `FloorDetails`, GF..6F bottom to top) and apartment
   types (`assets/data/apartment_details.json`, `ApartmentDetails`: one area + availability per
   unit type). The three JSON files mirror the project sheet's Building / Floor / Apartment
   tabs; values are copied as they are (C's GF has 0 apartments, A's floor areas don't sum to
-  the building total). Ids are generated (A01..A05, B01..B15,
-  C01, C02). The slot -> type mapping (`_typeCSlots`, then A, then B) is a
-  placeholder. Tap opens `BuildingDetailScreen`.
-- `BuildingDetailScreen` (Figma 81:2 panel open, 225:184 panel closed): exterior
-  photo + floor outline SVGs on a 1920x1081 canvas, info panel (X closes, info
-  button bottom-start reopens), rotate buttons cycle `_frames` (one image for now; floor
-  outlines only on frame 0; no zoom/slide, image covers the screen) and are hidden
-  while a floor is selected, Restart pops to the first page.
-- Floor selection (Figma 35:2647): the floor data is the source of truth (the photo is
-  obsolete). The selection indexes the type's floors top first (6F..GF); the floor stepper
-  and arrow keys cover every floor in the data. Outline SVG i (top to bottom) is tappable as
-  floor i (outlines 1..6 = 6F..1F, `floor_outline_7.svg` = GF, a placeholder box over the storey
-  below 1F until a traced outline exists); floors without an outline are reached with the stepper;
-  tap empty space clears. Floors are labelled everywhere (title, breadcrumb, stepper, tooltips,
+  the building total). `BuildingType.buildingIds` (A01..A05, B01..B15, C01, C02) must match the
+  Figma ids (`test/building_views_test.dart`). Tap opens `BuildingDetailScreen`.
+- `BuildingDetailScreen` (Figma 81:2 panel open, 225:184 panel closed): the type's exterior
+  views (`lib/data/building_views.dart`, Figma "Group 8" 652:2: A1..A3, B1..B3, C1..C4 on
+  3840x2160 frames, laid out on a 1920x1080 canvas = frame / 2, cover) with each view's floor
+  outlines, info panel (X closes, info button bottom-start reopens), Restart pops to the first page.
+  Stills are `assets/images/building/views/<type>_<n>.jpg` (first frame of clip n). Rotate
+  buttons / arrow keys play the transition clips (`video_player`, bundled 1080p H.264 in
+  `assets/videos/building/`): view n -> n+1 plays `<type>_<n>.mp4`, n+1 -> n plays
+  `<type>_<n>_reverse.mp4` (pre-reversed with ffmpeg), wrapping (A3 -> A1 = clip 3). Clip n is the
+  source "Frame n.mp4" (Drive "transition videos" / Building A|B|C). While a clip plays, input
+  to rotate is ignored and the outlines are hidden; it lands on the next still (also when the clip
+  fails to load, e.g. in tests). Rotate buttons are hidden while a floor is selected.
+- Floor selection (Figma 35:2647): the floor data is the source of truth. The selection indexes
+  the type's floors top first (6F..GF); the floor stepper and arrow keys cover every floor in the
+  data. Every view has one traced outline per floor (`BuildingView.floors`, top first; C2's
+  Vector 51 traces five floors and is split per sub-path), hit-tested on the shape itself
+  (`_PathClipper`); on some views the bottom-centre Apartments panel covers the lowest outlines,
+  which the stepper still reaches. Tap empty space clears. Floors are labelled everywhere (title, breadcrumb, stepper, tooltips,
   panels, masterplan floor filter) with the sheet's names via `AppStrings.floorName` /
   `floorNameOfLevel`: English "GF", "1F".."6F", Arabic "الأرضي", "ط1".."ط6". Selected floor swaps
   the "Building Details" info panel for "Floor Details" (`buildingDetails` / `floorDetails`; the
   floor's name is in its Floor row; that floor's apartments, types and area) and opens the `_ApartmentsPanel`
   (bottom-centre): a drag-scrollable row of cards (plan + bedrooms label), one per apartment
   type on that floor (hidden entirely on a floor with no apartments, e.g. type C's GF), loaded from
-  `assets/images/apartments/<type id lower-case>.png` (1br..4br; currently copies
-  of the placeholder plan, replace with real plans). Floor Details X only
+  `BuildingType.planAsset`: `assets/images/apartments/<building type>_<unit type>.png` (a_1br ..
+  c_3br, the 3D plans from the Drive "floorplans" folder, one per building type + unit type,
+  scaled to 1200px). Floor Details X only
   collapses the panel (info button reopens); Apartments X clears the selection.
 - Apartment details (Figma 59:454): tapping an apartment card replaces both panels with
   `_ApartmentDetailsPanel` (bottom-start: floor, type, area, availability from
@@ -101,7 +113,7 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
 - Register Interest (Figma 41:3055 form, 100:17 thank-you; `lib/screens/register_interest_screen.dart`):
   the apartment details Register Interest button calls `RegisterInterestScreen.open(context)`, a
   transparent modal route with the "Your Information" form (name/email/phone validated, nothing
-  sent anywhere yet). On submit it pushes `InterestRegisteredScreen` (blurred exterior, logo,
+  sent anywhere yet). On submit it pushes `InterestRegisteredScreen` (blurred exterior view A1, logo,
   Restart Experience = popUntil first, dismissible toast top-end). Assets in `assets/images/register/`.
 - Convention: every Restart button on a screen (this and future ones) ends in
   `Navigator.popUntil((r) => r.isFirst)`, not a local state reset. Restart buttons on the
@@ -112,7 +124,7 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   - `IdleReset` (`lib/widgets/idle_reset.dart`, mounted in `MaterialApp.builder` with the app
     `navigatorKey`): 90s without input off the first page -> "Still there?" 15s countdown ->
     `popUntil(first)`. `LocaleFade` cross-fades on language change (state is kept).
-  - Masterplan: building buttons have a 64px touch target, hover/press feedback, a first-visit
+  - Masterplan: building id labels have a 48px-high touch target (and the outline is tappable), hover/press feedback, a first-visit
     pulse + "Tap a building" hint (`StatusChip`, gone after 12s or first interaction), and are
     dimmed when filtered out (building type, plus floor / size / availability select apartments:
     a building is lit when one of its apartments passes all of them; slider bounds come from the floor
@@ -127,8 +139,8 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
     The Filters panel always reserves the Clear filters slot so it does not resize (QA #03).
   - Building detail: `_Breadcrumb` (Masterplan > Building > Floor), `_FloorStepper` (up/down
     while a floor is selected, arrow keys too; centre-end, opposite the start-side panels),
-    selected floor outline is filled semi-transparent orange (60%, as in Figma 35:2647), the same
-    on every floor (all outline SVGs share fill-opacity 0.03, boosted x20), selecting a floor or closing Apartment
+    selected floor outline is filled semi-transparent orange (60%, as in Figma 35:2647; others
+    a 3% fill + 2px `AppColors.floorOutline` stroke, `_OutlinePainter`), selecting a floor or closing Apartment
     Details reopens a collapsed info panel, floor outlines have tooltips, panels swap with
     `AnimatedSwitcher`. Back/system back/Esc close the topmost layer first (apartment, floor)
     via `PopScope`. Floor Details/Building panel uses a collapse chevron (not X); X still means
@@ -163,7 +175,8 @@ screen is identical and text does not overlap at 1280x800 / 1920x1200 / 2560x160
   `city_context`, `masterplan`, and on the building screen `building_details` (tag = building type),
   `floor_details` (tag = floor code, also with the panel collapsed), `apartment_details` (tag = unit
   type), `exterior` (building panel collapsed). The building screen's states also send `details`
-  (`building` id, `buildingType`, plus `floor` code + `floorNumber` once a floor is selected and
+  (`building` id, `buildingType`, `view` number of the exterior view on screen, resent after each
+  rotation, plus `floor` code + `floorNumber` once a floor is selected and
   `apartmentType` once an apartment is). The player shows them on its placeholder screen (a state
   without media); how they pick media is not decided yet. The register form and thank-you screen have no
   MirrorState, so the main screen keeps the previous state. Modals: a gallery tile tap sends
@@ -197,7 +210,7 @@ Visual (background visibility):
 
 Sizing / touch:
 - All icon buttons >= 48px touch target (rotate buttons 48, not 40; `PanelCloseButton` 48 target
-  around the 32px X; building buttons 64px target around the 44px box).
+  around the 32px X; masterplan id labels 48px-high target around the 24px pill).
 
 Behaviour (not in Figma):
 - `IdleReset` (90s + 15s countdown) and `LocaleFade`; thank-you screen auto-restart (30s) and toast

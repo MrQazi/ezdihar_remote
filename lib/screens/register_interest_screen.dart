@@ -23,7 +23,7 @@ TextStyle _text(
         ? GoogleFonts.notoSansArabic(fontSize: size, fontWeight: weight, color: color, letterSpacing: spacing)
         : GoogleFonts.rubik(fontSize: size, fontWeight: weight, color: color, letterSpacing: spacing);
 
-const _background = 'assets/images/building/exterior.jpg';
+const _background = 'assets/images/building/views/a_1.jpg';
 
 /// Blurred, darkened exterior photo behind both register screens
 /// (Figma 41:3309 / 100:143: black @ 80% over a 14px blur).

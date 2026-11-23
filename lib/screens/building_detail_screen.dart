@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:video_player/video_player.dart';
 
 import '../data/building_data.dart';
+import '../data/building_views.dart';
+import '../data/outline_shape.dart';
 import '../l10n/app_strings.dart';
 import '../services/ui_feedback.dart';
 import '../theme/app_colors.dart';
@@ -51,14 +54,22 @@ class BuildingDetailScreen extends StatefulWidget {
 
 class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   static const _assets = 'assets/images/building';
-  static const _canvas = Size(1920, 1081);
 
-  /// Exterior frames the rotate buttons cycle through (one for now). The floor
-  /// outlines are registered to the first frame only.
-  static const _frames = ['$_assets/exterior.jpg'];
+  /// The views are 16:9 renders; laid out on this canvas (Figma frame / 2).
+  static const _canvas = Size(BuildingView.figmaWidth / 2, BuildingView.figmaHeight / 2);
+
+  /// The type's exterior views (Figma 652:2), in rotation order.
+  late final List<BuildingView> _views = BuildingView.of(widget.type.type);
 
   bool _panelOpen = true;
-  int _frame = 0;
+
+  /// Index into [_views] of the view on screen.
+  int _view = 0;
+
+  /// While rotating: the view the transition lands on, and its clip once loaded.
+  int? _target;
+  VideoPlayerController? _clip;
+  Timer? _clipTimeout;
 
   /// Index into [_floors] of the selected floor, or null when none is selected.
   int? _floor;
@@ -75,8 +86,19 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The neighbouring views' stills, so a transition never lands on a blank.
+    for (final v in _views) {
+      precacheImage(AssetImage(v.image), context);
+    }
+  }
+
+  @override
   void dispose() {
     _hintTimer?.cancel();
+    _clipTimeout?.cancel();
+    _disposeClip(_clip);
     super.dispose();
   }
 
@@ -126,8 +148,70 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     }
   }
 
-  void _rotate(int delta) =>
-      setState(() => _frame = (_frame + delta) % _frames.length);
+  bool get _rotating => _target != null;
+
+  /// Turns to the next (delta 1) or previous (-1) view, playing the transition
+  /// clip between them: view n -> n+1 plays clip n, n+1 -> n plays clip n
+  /// reversed (a pre-reversed file), wrapping from the last view to the first.
+  /// Ignored while a transition is playing.
+  Future<void> _rotate(int delta) async {
+    if (_views.length < 2 || _rotating) return;
+    final to = (_view + delta) % _views.length;
+    final asset = delta > 0 ? _views[_view].clip : _views[to].reverseClip;
+    setState(() => _target = to);
+    final clip = VideoPlayerController.asset(asset);
+    try {
+      await clip.initialize();
+      if (!mounted || _target != to) {
+        _disposeClip(clip);
+        return;
+      }
+      clip.addListener(_onClipTick);
+      setState(() => _clip = clip);
+      // Lands anyway if the clip never reports its end.
+      _clipTimeout = Timer(clip.value.duration + const Duration(seconds: 2), _finishRotation);
+      await clip.play();
+    } catch (_) {
+      // No video (or a decoder error): jump straight to the view.
+      _disposeClip(clip);
+      if (mounted) _finishRotation();
+    }
+  }
+
+  void _onClipTick() {
+    final value = _clip?.value;
+    if (value == null) return;
+    final ended = value.isInitialized &&
+        !value.isPlaying &&
+        value.position >= value.duration - const Duration(milliseconds: 100);
+    if (value.hasError || ended) _finishRotation();
+  }
+
+  /// Shows the target view's still; the clip stays on top for one more frame,
+  /// so the still is painted underneath before the clip goes.
+  void _finishRotation() {
+    final target = _target;
+    if (target == null || !mounted) return;
+    _clipTimeout?.cancel();
+    final clip = _clip;
+    clip?.removeListener(_onClipTick);
+    setState(() {
+      _view = target;
+      _target = null;
+    });
+    if (clip == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Once unmounted, dispose() has already released it.
+      if (!mounted) return;
+      if (_clip == clip) setState(() => _clip = null);
+      _disposeClip(clip);
+    });
+  }
+
+  static void _disposeClip(VideoPlayerController? clip) {
+    if (clip == null) return;
+    clip.dispose().catchError((Object _) {});
+  }
 
   /// Restart: confirm, then clear the stack and return to the first page.
   void _restart() => confirmRestart(context);
@@ -190,8 +274,9 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
                     size: _canvas,
                     child: _ExteriorCanvas(
                       pulse: _floor == null,
-                      frame: _frames[_frame],
-                      showOutlines: _frame == 0,
+                      view: _views.isEmpty ? null : _views[_view],
+                      clip: _clip,
+                      showOutlines: !_rotating && _clip == null,
                       floorCount: _floors.length,
                       selected: _floor,
                       onSelect: _selectFloor,
@@ -322,6 +407,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
                                   child: _ApartmentsPanel(
                                     strings: strings,
                                     apartmentTypes: _floorTypes,
+                                    plan: widget.type.planAsset,
                                     selected: _apartment,
                                     onSelect: (i) => setState(() => _apartment = i),
                                     onClose: () => _selectFloor(null),
@@ -377,6 +463,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     return {
       'building': widget.buildingId,
       'buildingType': widget.type.type,
+      if (_views.isNotEmpty) 'view': _views[_view].number,
       if (floor != null) ...{'floor': floor.code, 'floorNumber': floor.level},
       if (_apartment != null) 'apartmentType': _floorTypes[_apartment!],
     };
@@ -403,6 +490,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
           strings: strings,
           floor: strings.floorName(_floors[_floor!].code),
           type: _floorTypes[_apartment!],
+          plan: widget.type.planAsset(_floorTypes[_apartment!]),
           details: widget.type.apartments[_floorTypes[_apartment!]],
           onClose: _closeApartment,
         ),
@@ -562,12 +650,14 @@ class _FloorStepper extends StatelessWidget {
   }
 }
 
-/// The building photo with the floor outlines drawn over it, on the Figma
-/// canvas so the outlines stay registered to the photo.
+/// The exterior view with its floor outlines drawn over it, on the view's
+/// canvas so the outlines stay registered to the render. While a transition
+/// [clip] plays it covers the view and the outlines are hidden.
 class _ExteriorCanvas extends StatefulWidget {
   const _ExteriorCanvas({
     required this.pulse,
-    required this.frame,
+    required this.view,
+    required this.clip,
     required this.showOutlines,
     required this.floorCount,
     required this.selected,
@@ -575,7 +665,9 @@ class _ExteriorCanvas extends StatefulWidget {
     required this.floorLabel,
   });
 
-  final String frame;
+  /// The view on screen (null for a type without views: blank canvas).
+  final BuildingView? view;
+  final VideoPlayerController? clip;
   final bool showOutlines;
 
   /// Floors in the data; outline i (top to bottom) is floor i, and outlines
@@ -587,31 +679,8 @@ class _ExteriorCanvas extends StatefulWidget {
   /// Tooltip text (shown on hover / long-press) for the outline at an index.
   final String Function(int index) floorLabel;
 
-  static const _assets = _BuildingDetailScreenState._assets;
-
-  /// Raises the outline SVG's near-transparent fill (3%, the same in every
-  /// outline) to a 60% fill in its colour, so the facade shows through as in
-  /// Figma 35:2647; the stroke stays opaque. Keep the outlines' fill-opacity
-  /// equal, or floors highlight differently.
-  static const _selectedFill = ColorFilter.matrix([
-    1, 0, 0, 0, 0, //
-    0, 1, 0, 0, 0, //
-    0, 0, 1, 0, 0, //
-    0, 0, 0, 20, 0, //
-  ]);
-
-  /// Per outline: Figma box (left, top, width, height) and the SVG's overflow
-  /// beyond that box in percent (top, right, bottom, left).
-  static const _outlines = [
-    (box: Rect.fromLTWH(300, 197, 853, 193), inset: (1.6, 0.54, 4.08, 0.82)),
-    (box: Rect.fromLTWH(595, 345.5, 226, 74), inset: (4.13, 1.33, 9.52, 3.1)),
-    (box: Rect.fromLTWH(605, 414, 213, 70), inset: (4.34, 1.41, 10.31, 3.29)),
-    (box: Rect.fromLTWH(605.5, 484, 211.5, 64.5), inset: (4.69, 1.42, 11.11, 3.31)),
-    (box: Rect.fromLTWH(608, 550.5, 210, 63), inset: (4.79, 1.43, 11.29, 3.33)),
-    (box: Rect.fromLTWH(608, 616, 210, 63), inset: (5.05, 1.43, 11.22, 3.33)),
-    // GF: a placeholder box over the storey below 1F, until a traced outline exists.
-    (box: Rect.fromLTWH(608, 684, 210, 56), inset: (0.0, 0.0, 0.0, 0.0)),
-  ];
+  /// The canvas is half the Figma frame the outlines are traced on.
+  static const _scale = 0.5;
 
   /// Draws the attention pulse around the outlines (first-visit hint).
   final bool pulse;
@@ -621,9 +690,6 @@ class _ExteriorCanvas extends StatefulWidget {
 }
 
 class _ExteriorCanvasState extends State<_ExteriorCanvas> with SingleTickerProviderStateMixin {
-  static const _assets = _ExteriorCanvas._assets;
-  static const _outlines = _ExteriorCanvas._outlines;
-
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1800),
@@ -654,6 +720,9 @@ class _ExteriorCanvasState extends State<_ExteriorCanvas> with SingleTickerProvi
 
   @override
   Widget build(BuildContext context) {
+    final view = widget.view;
+    final clip = widget.clip;
+    final floors = view?.floors ?? const <OutlineShape>[];
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -661,24 +730,24 @@ class _ExteriorCanvasState extends State<_ExteriorCanvas> with SingleTickerProvi
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onSelect(null),
-          child: FadeInAsset(widget.frame),
+          // Keyed by view, so landing on a new view does not fade it in again.
+          child: view == null ? const SizedBox.expand() : FadeInAsset(view.image, key: ValueKey(view.image)),
         ),
+        if (clip != null) IgnorePointer(child: VideoPlayer(clip)),
         if (widget.showOutlines)
-          for (var i = 0; i < _outlines.length && i < widget.floorCount; i++)
-            _positioned(i, _outlines[i].box, _outlines[i].inset, '$_assets/floor_outline_${i + 1}.svg'),
+          for (var i = 0; i < floors.length && i < widget.floorCount; i++) _positioned(i, floors[i]),
       ],
     );
   }
 
-  Widget _positioned(int index, Rect box, (double, double, double, double) inset, String asset) {
-    final (top, right, bottom, left) = inset;
-    return Positioned(
-      left: box.left - box.width * left / 100,
-      top: box.top - box.height * top / 100,
-      width: box.width * (1 + (left + right) / 100),
-      height: box.height * (1 + (top + bottom) / 100),
+  /// The outline at its bounding box, so its tooltip and tap target sit on it.
+  Widget _positioned(int index, OutlineShape shape) {
+    final path = shape.path(_ExteriorCanvas._scale);
+    final box = path.getBounds();
+    return Positioned.fromRect(
+      rect: box,
       child: _FloorOutline(
-        asset: asset,
+        path: path.shift(-box.topLeft),
         label: widget.floorLabel(index),
         selected: widget.selected == index,
         dimmed: widget.selected != null && widget.selected != index,
@@ -697,7 +766,7 @@ class _ExteriorCanvasState extends State<_ExteriorCanvas> with SingleTickerProvi
 /// grow on hover / press, and dimmed when another floor is selected.
 class _FloorOutline extends StatefulWidget {
   const _FloorOutline({
-    required this.asset,
+    required this.path,
     required this.label,
     required this.selected,
     required this.dimmed,
@@ -705,7 +774,8 @@ class _FloorOutline extends StatefulWidget {
     required this.onTap,
   });
 
-  final String asset;
+  /// The outline, relative to this widget's box (its bounds).
+  final Path path;
   final String label;
   final bool selected;
   final bool dimmed;
@@ -722,11 +792,16 @@ class _FloorOutlineState extends State<_FloorOutline> {
 
   @override
   Widget build(BuildContext context) {
-    final svg = SvgPicture.asset(widget.asset, fit: BoxFit.fill);
+    Widget outline({required bool filled}) =>
+        CustomPaint(painter: _OutlinePainter(widget.path, filled: filled), size: Size.infinite);
     final active = _hovered || _pressed;
     return Tooltip(
       message: widget.label,
-      child: MouseRegion(
+      // Only the traced shape takes taps (its box overlaps the neighbours').
+      child: ClipPath(
+        clipper: _PathClipper(widget.path),
+        clipBehavior: Clip.none,
+        child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
@@ -753,24 +828,65 @@ class _FloorOutlineState extends State<_FloorOutline> {
                         final t = widget.pulse.value;
                         return Opacity(
                           opacity: widget.pulse.isAnimating ? 1 - t : 0,
-                          child: Transform.scale(scale: 1 + 0.18 * t, child: svg),
+                          child: Transform.scale(scale: 1 + 0.06 * t, child: outline(filled: false)),
                         );
                       },
                     ),
                   ),
                 AnimatedScale(
                   duration: const Duration(milliseconds: 120),
-                  scale: active && !widget.selected ? 1.03 : 1,
+                  scale: active && !widget.selected ? 1.02 : 1,
                   // The selected floor is filled, not just outlined.
-                  child: widget.selected ? ColorFiltered(colorFilter: _ExteriorCanvas._selectedFill, child: svg) : svg,
+                  child: outline(filled: widget.selected),
                 ),
               ],
             ),
           ),
         ),
       ),
+      ),
     );
   }
+}
+
+class _PathClipper extends CustomClipper<Path> {
+  const _PathClipper(this.path);
+
+  final Path path;
+
+  @override
+  Path getClip(Size size) => path;
+
+  @override
+  bool shouldReclip(_PathClipper old) => old.path != path;
+}
+
+/// A floor outline: a stroke with a faint fill, or (selected) a 60% fill so the
+/// facade shows through, as in Figma 35:2647.
+class _OutlinePainter extends CustomPainter {
+  const _OutlinePainter(this.path, {required this.filled});
+
+  final Path path;
+  final bool filled;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      path,
+      Paint()..color = AppColors.floorOutline.withValues(alpha: filled ? 0.6 : 0.03),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = AppColors.floorOutline
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_OutlinePainter old) => old.path != path || old.filled != filled;
 }
 
 class _InfoPanel extends StatelessWidget {
@@ -860,6 +976,7 @@ class _ApartmentDetailsPanel extends StatelessWidget {
     required this.strings,
     required this.floor,
     required this.type,
+    required this.plan,
     required this.details,
     required this.onClose,
   });
@@ -869,8 +986,11 @@ class _ApartmentDetailsPanel extends StatelessWidget {
   /// Floor name in the sheet's convention, e.g. "3F" or "GF".
   final String floor;
 
-  /// Apartment type id, e.g. "2BR"; names the plan image.
+  /// Apartment type id, e.g. "2BR".
   final String type;
+
+  /// Floor plan image asset ([BuildingType.planAsset]).
+  final String plan;
 
   /// Area and availability of [type]; those rows are left out when missing.
   final ApartmentDetails? details;
@@ -926,10 +1046,7 @@ class _ApartmentDetailsPanel extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/images/apartments/${type.toLowerCase()}.png',
-                    fit: BoxFit.contain,
-                  ),
+                  child: Image.asset(plan, fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(height: 32),
@@ -989,6 +1106,7 @@ class _ApartmentsPanel extends StatelessWidget {
   const _ApartmentsPanel({
     required this.strings,
     required this.apartmentTypes,
+    required this.plan,
     required this.selected,
     required this.onSelect,
     required this.onClose,
@@ -997,9 +1115,11 @@ class _ApartmentsPanel extends StatelessWidget {
   final AppStrings strings;
 
   /// Apartment type ids (e.g. "2BR"), never empty: the panel is hidden on a
-  /// floor without apartments. The plan image is
-  /// `assets/images/apartments/<id lower-case>.png`.
+  /// floor without apartments.
   final List<String> apartmentTypes;
+
+  /// Plan image of an apartment type ([BuildingType.planAsset]).
+  final String Function(String unitType) plan;
   final int? selected;
   final ValueChanged<int> onSelect;
   final VoidCallback onClose;
@@ -1051,6 +1171,7 @@ class _ApartmentsPanel extends StatelessWidget {
               _CardsRow(
                 strings: strings,
                 apartmentTypes: apartmentTypes,
+                plan: plan,
                 selected: selected,
                 onSelect: onSelect,
               ),
@@ -1068,12 +1189,14 @@ class _CardsRow extends StatefulWidget {
   const _CardsRow({
     required this.strings,
     required this.apartmentTypes,
+    required this.plan,
     required this.selected,
     required this.onSelect,
   });
 
   final AppStrings strings;
   final List<String> apartmentTypes;
+  final String Function(String unitType) plan;
   final int? selected;
   final ValueChanged<int> onSelect;
 
@@ -1162,7 +1285,7 @@ class _CardsRowState extends State<_CardsRow> {
                         for (var i = 0; i < types.length; i++) ...[
                           if (i > 0) const SizedBox(width: _ApartmentsPanel._gap),
                           _ApartmentCard(
-                            asset: 'assets/images/apartments/${types[i].toLowerCase()}.png',
+                            asset: widget.plan(types[i]),
                             label: widget.strings.bedrooms(types[i].replaceAll(RegExp(r'\D'), '')),
                             selected: widget.selected == i,
                             onTap: () => widget.onSelect(i),

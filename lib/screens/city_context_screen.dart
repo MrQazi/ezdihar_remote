@@ -56,7 +56,7 @@ class _CityContextScreenState extends State<CityContextScreen> {
     super.didChangeDependencies();
     // Warm up the masterplan photo so it does not pop in after the tap.
     precacheImage(
-      const AssetImage('assets/images/masterplan/background.png'),
+      const AssetImage('assets/images/masterplan/background.jpg'),
       context,
     );
   }

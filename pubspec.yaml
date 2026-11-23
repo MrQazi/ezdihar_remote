@@ -43,6 +43,7 @@ dependencies:
   audioplayers: ^6.1.0
   web_socket_channel: ^3.0.3
   mobile_scanner: ^7.4.2
+  video_player: ^2.14.1
 
 dev_dependencies:
   flutter_test:
@@ -73,10 +74,12 @@ flutter:
     - assets/images/city/landmarks/
     - assets/images/masterplan/
     - assets/images/building/
+    - assets/images/building/views/
     - assets/images/apartments/
     - assets/images/register/
     - assets/data/
     - assets/pdfs/
+    - assets/videos/building/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

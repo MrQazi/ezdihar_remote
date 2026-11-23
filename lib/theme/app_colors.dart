@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   static const accent = Color(0xFFCA936B);
 
+  /// Orange of the traced highlights: floor outlines on the exterior views and
+  /// building outlines on the masterplan (Figma F28D43).
+  static const floorOutline = Color(0xFFF28D43);
+
+  /// Masterplan amenity label fill (C07F4E @ 20%).
+  static const amenityLabel = Color(0x33C07F4E);
+
   /// Bars around the app canvas on screens that are not 16:10.
   static const letterbox = Color(0xFF000000);
 
