@@ -1,9 +1,11 @@
 name: Android build
 
 # Every push to main (and every PR into main) is verified: analyze, test, build the APK.
+# A passing main push also replaces the "main-latest" pre-release with its APK.
 # A push to `release` builds the same way and publishes a GitHub release, but only for a
 # commit whose main run passed. To release: push to main, wait for its run to pass, then
-# fast-forward `release` to that commit and push it.
+# fast-forward `release` to that commit and push it. All APKs are signed with the debug
+# key committed at android/app/debug.keystore (the app is never published).
 on:
   push:
     branches: [main, release]
@@ -64,26 +66,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Set up release signing
-        if: github.event_name != 'pull_request'
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          if [[ -z "$ANDROID_KEYSTORE_BASE64" ]]; then
-            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: the APK is signed with a throwaway debug key, so installing a newer build over an older one needs an uninstall first."
-            exit 0
-          fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
-          cat > android/key.properties <<EOF
-          storeFile=upload-keystore.jks
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          keyPassword=${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}
-          EOF
-
+      # Signed with the debug key committed at android/app/debug.keystore (the app is
+      # never published), so every build installs over the previous one.
       - name: Build release APK
         run: flutter build apk --release --build-number=${{ github.run_number }}
 
@@ -103,6 +87,23 @@ jobs:
           name: ${{ steps.apk.outputs.name }}
           path: dist/${{ steps.apk.outputs.name }}
           retention-days: ${{ github.ref == 'refs/heads/release' && 30 || 7 }}
+
+      # Every passing main build replaces the "main-latest" pre-release, so the newest
+      # main APK is always one click away at .../releases/tag/main-latest (no login,
+      # no zip). It is a pre-release and never marked Latest; real releases stay apart.
+      - name: Publish latest main build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete main-latest --cleanup-tag --yes || true
+          gh release create main-latest "dist/${{ steps.apk.outputs.name }}" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --latest=false \
+            --title "Latest main build (build ${{ github.run_number }}, ${GITHUB_SHA::7})" \
+            --notes "Newest APK from main (passed analyze + test), commit $GITHUB_SHA. Replaced on every main push; for releases see the other tags."
+          echo "Latest main APK: [main-latest]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/main-latest)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish GitHub release
         if: github.ref == 'refs/heads/release'

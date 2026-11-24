@@ -313,7 +313,12 @@ Behaviour (not in Figma):
 - CI (`.github/workflows/android.yml`, Flutter pinned by `FLUTTER_VERSION`) runs analyze + test +
   release APK build on every push to `main`, every PR into `main` and every push to `release`; only
   a `release` push publishes a GitHub release (each run uses a build number), and it refuses a
-  commit without a successful `main` run. "Make a release" = push to `main`, wait for that run to
+  commit without a successful `main` run. Every passing `main` push replaces the `main-latest`
+  pre-release (never marked Latest) with its APK: the newest main build is always at
+  https://github.com/Qazi-Narsun/ezdihar_remote/releases/tag/main-latest. The app is never
+  published, so every build (debug and release, local and CI) is signed with the debug key
+  committed at `android/app/debug.keystore` (standard `android` / `androiddebugkey` credentials):
+  any build installs over any other. No signing secrets. "Make a release" = push to `main`, wait for that run to
   pass, then fast-forward `release` to that commit and push it. Bumping Flutter means bumping
   Gradle / AGP / Kotlin in `android/` to its minimums (Flutter 3.50: Gradle 9.5.0, AGP 9.3.1,
   Kotlin 2.4.20) in the same change. Still run `flutter analyze` and `flutter test` locally first.

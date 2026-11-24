@@ -13,3 +13,5 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+# The shared debug key every build is signed with (the app is never published).
+!app/debug.keystore
