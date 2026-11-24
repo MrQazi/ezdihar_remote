@@ -250,7 +250,6 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
                         ),
                       ),
                       LanguageToggle(
-                        darkSelectedText: true,
                         selected: isArabic ? AppLanguage.arabic : AppLanguage.english,
                         onChanged: (language) => widget.onLocaleChanged(
                           Locale(language == AppLanguage.arabic ? 'ar' : 'en'),
@@ -736,8 +735,8 @@ class _AmenityLabel extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: strings.isArabic
-                ? GoogleFonts.notoSansArabic(fontSize: 11, color: AppColors.onLight, height: 1.2)
-                : GoogleFonts.rubik(fontSize: 12, color: AppColors.onLight, height: 1.2, letterSpacing: 0.24),
+                ? GoogleFonts.notoSansArabic(fontSize: 11, color: Colors.white, height: 1.2)
+                : GoogleFonts.rubik(fontSize: 12, color: Colors.white, height: 1.2, letterSpacing: 0.24),
           ),
         ),
       ),
@@ -940,13 +939,12 @@ class _BuildingButtonState extends State<_BuildingButton> {
                               border: Border.all(color: _dim(AppColors.glassBorder, o), width: 0.48),
                             ),
                             child: Center(
-                              // Ids are Latin in both languages (as in Figma 648:1344);
-                              // dark on the light pressed fill.
+                              // Ids are Latin in both languages (as in Figma 648:1344).
                               child: Text(
                                 widget.label,
                                 style: GoogleFonts.rubik(
                                   fontSize: 12,
-                                  color: _dim(active ? AppColors.onLight : Colors.white, o),
+                                  color: _dim(Colors.white, o),
                                   height: 1,
                                   letterSpacing: 0.24,
                                 ),
@@ -1035,7 +1033,6 @@ class _NavTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(selected ? 24 : 39);
-    final foreground = selected ? AppColors.onLight : Colors.white;
     return Material(
       color: selected ? AppColors.accent : Colors.transparent,
       borderRadius: radius,
@@ -1050,17 +1047,13 @@ class _NavTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Dark on the light selected fill, white on the glass.
-              SvgPicture.asset(
-                icon,
-                colorFilter: selected ? const ColorFilter.mode(AppColors.onLight, BlendMode.srcIn) : null,
-              ),
+              SvgPicture.asset(icon),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: strings.isArabic
-                    ? GoogleFonts.notoSansArabic(fontSize: fontSize, color: foreground, letterSpacing: spacing)
-                    : GoogleFonts.rubik(fontSize: fontSize, color: foreground, letterSpacing: spacing, height: 1),
+                    ? GoogleFonts.notoSansArabic(fontSize: fontSize, color: Colors.white, letterSpacing: spacing)
+                    : GoogleFonts.rubik(fontSize: fontSize, color: Colors.white, letterSpacing: spacing, height: 1),
               ),
             ],
           ),
@@ -1281,7 +1274,7 @@ class _CheckOption extends StatelessWidget {
               color: checked ? AppColors.accent : AppColors.panelField,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: checked ? const Icon(Icons.check, size: 14, color: AppColors.onLight) : null,
+            child: checked ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
           ),
           const SizedBox(width: 8),
           Text(

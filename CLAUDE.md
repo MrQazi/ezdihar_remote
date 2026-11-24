@@ -98,9 +98,9 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   twice the resolution, cover-scaled) on the 1920x1080 frame, inside `ZoomView`
   (`lib/widgets/zoom_view.dart`) so everything zooms with it; at 1x it is exactly Figma 648:1892.
   Amenity pills and building id pills use a grouped 40px backdrop blur (`BackdropGroup` +
-  `BackdropFilter.grouped`), as in Figma. On the masterplan, text/icons on light surfaces (amenity
-  pills, selected nav tab, pressed id pill, checked boxes, selected language segment via
-  `LanguageToggle.darkSelectedText`) are `AppColors.onLight` (the dark tile colour 2D1C10), not white. The image cache is raised to 400 MB in `main()` so the ~133 MB decoded map stays cached. `lib/data/masterplan_data.dart` holds the Figma
+  `BackdropFilter.grouped`), as in Figma. Text and icons on the light tiles (amenity
+  pills, selected nav tab, pressed id pill, checked boxes, selected language segment) are white,
+  as in Figma (a dark-text variant was tried and dropped by the client). The image cache is raised to 400 MB in `main()` so the ~133 MB decoded map stays cached. `lib/data/masterplan_data.dart` holds the Figma
   placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
   traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
   sub-path each) and `masterplanAmenities` (Green Area 1-9, Children's Playground 1-7 = Figma's

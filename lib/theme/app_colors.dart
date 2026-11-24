@@ -7,10 +7,6 @@ abstract final class AppColors {
   /// building outlines on the masterplan (Figma F28D43).
   static const floorOutline = Color(0xFFF28D43);
 
-  /// Text and icons on light surfaces (accent fills, frosted amenity pills):
-  /// the dark brown of the glass tiles (2D1C10), opaque.
-  static const onLight = Color(0xFF2D1C10);
-
   /// Masterplan amenity label fill (C07F4E @ 20%).
   static const amenityLabel = Color(0x33C07F4E);
 
