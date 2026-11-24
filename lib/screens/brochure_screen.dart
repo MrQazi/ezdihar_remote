@@ -6,6 +6,7 @@ import '../services/player_connection.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import '../widgets/glass_icon_button.dart';
+import '../widgets/modal_backdrop.dart';
 
 /// Full-screen modal that shows the project brochure PDF: portrait pages, the
 /// current page centred inside a padded, bordered frame. Swipe or use the arrow
@@ -84,8 +85,9 @@ class _BrochureScreenState extends State<BrochureScreen> {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     return Scaffold(
-      backgroundColor: AppColors.scrim,
-      body: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: ModalBackdrop(
+        child: SafeArea(
         child: Stack(
           children: [
             Padding(
@@ -221,6 +223,7 @@ class _BrochureScreenState extends State<BrochureScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

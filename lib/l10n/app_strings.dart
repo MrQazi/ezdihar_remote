@@ -54,6 +54,8 @@ class AppStrings {
     'brochureError': 'Could not open the brochure',
     'previous': 'Previous page',
     'next': 'Next page',
+    'previousImage': 'Previous image',
+    'nextImage': 'Next image',
     'registerInterest': 'Register Interest',
     'yourInformation': 'Your Information',
     'yourName': 'Your Name',
@@ -201,6 +203,8 @@ class AppStrings {
     'brochureError': 'تعذر فتح الكتيب',
     'previous': 'الصفحة السابقة',
     'next': 'الصفحة التالية',
+    'previousImage': 'الصورة السابقة',
+    'nextImage': 'الصورة التالية',
     'registerInterest': 'سجل اهتمامك',
     'yourInformation': 'معلوماتك',
     'yourName': 'الاسم',
@@ -352,6 +356,8 @@ class AppStrings {
   String get brochureError => _values['brochureError']!;
   String get previous => _values['previous']!;
   String get next => _values['next']!;
+  String get previousImage => _values['previousImage']!;
+  String get nextImage => _values['nextImage']!;
   String get registerInterest => _values['registerInterest']!;
   String get yourInformation => _values['yourInformation']!;
   String get yourName => _values['yourName']!;

@@ -23,6 +23,7 @@ import '../widgets/restart_dialog.dart';
 import '../widgets/zoom_view.dart';
 import '../widgets/status_chip.dart';
 import 'building_detail_screen.dart';
+import 'image_modal.dart';
 
 /// Which panel the bottom navigation currently has open above the map.
 enum _MasterplanPanel { filters, gallery }
@@ -534,14 +535,24 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
                   itemBuilder: (context, i) => _GalleryTile(
                     image: '$_assets/${images[i].$1}',
                     selected: i == _selectedImage,
-                    onTap: () {
+                    onTap: () async {
                       UiFeedback.tap();
                       setState(() => _selectedImage = i);
-                      // Main screen: Gallery/<id>.mp4 or .png of the player experience.
-                      PlayerConnection.instance.showModal({
-                        'kind': 'gallery',
-                        'id': images[i].$2,
-                      });
+                      // Full-screen viewer over the map; the main screen shows the
+                      // same render (Gallery/<id> of the player experience).
+                      await ImageModal.open(
+                        context,
+                        initialIndex: i,
+                        images: [
+                          for (final (asset, id) in images)
+                            ModalImage(
+                              asset: '$_assets/$asset',
+                              mirror: {'kind': 'gallery', 'id': id},
+                            ),
+                        ],
+                      );
+                      // The modal's close also closed it on the main screen.
+                      if (mounted) setState(() => _selectedImage = null);
                     },
                   ),
                 ),
@@ -616,6 +627,28 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
     super.dispose();
   }
 
+  /// The amenity's photo in the image modal; the main screen shows it too
+  /// (`Amenities/<id>` of the player experience, with the label's name).
+  void _openAmenity(MasterplanAmenity a) {
+    final strings = AppStrings.of(context);
+    String title(AppStrings s) => s.amenity(a.kind.name, a.number);
+    ImageModal.open(
+      context,
+      images: [
+        ModalImage(
+          asset: a.kind.photo,
+          title: title,
+          mirror: {
+            'kind': 'amenity',
+            'id': a.kind.id,
+            'title': title(strings),
+            'locale': strings.isArabic ? 'ar' : 'en',
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -630,19 +663,19 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
             const Positioned.fill(
               child: FadeInAsset('assets/images/masterplan/background.jpg'),
             ),
-            // Amenities sit under the buildings and never take taps.
+            // Amenities sit under the buildings (which win where they overlap);
+            // tapping a label shows its photo.
             for (final a in masterplanAmenities)
               Positioned(
                 left: a.center.dx - 100,
                 top: a.center.dy - 50,
                 width: 200,
                 height: 100,
-                child: IgnorePointer(
-                  child: Center(
-                    child: _AmenityLabel(
-                      label: strings.amenity(a.kind.name, a.number),
-                      width: strings.isArabic ? a.widthAr : a.widthEn,
-                    ),
+                child: Center(
+                  child: _AmenityLabel(
+                    label: strings.amenity(a.kind.name, a.number),
+                    width: strings.isArabic ? a.widthAr : a.widthEn,
+                    onTap: () => _openAmenity(a),
                   ),
                 ),
               ),
@@ -703,12 +736,13 @@ class _BuildingSpot {
 }
 
 /// Amenity label (Figma 648:2209): a translucent copper pill, text wrapped
-/// to the Figma label's width. Not interactive.
+/// to the Figma label's width. Tapping it opens the amenity's photo.
 class _AmenityLabel extends StatelessWidget {
-  const _AmenityLabel({required this.label, required this.width});
+  const _AmenityLabel({required this.label, required this.width, required this.onTap});
 
   final String label;
   final double width;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -717,6 +751,23 @@ class _AmenityLabel extends StatelessWidget {
     // Figma: backdrop blur 40 under the translucent copper fill, which is what
     // makes the pill read as frosted glass over the map. Grouped: the map's
     // pills share one backdrop pass (BackdropGroup in _MapCanvas).
+    return Semantics(
+      button: true,
+      label: label,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            UiFeedback.tap();
+            onTap();
+          },
+          child: _pill(strings, radius),
+        ),
+      ),
+    );
+  }
+
+  Widget _pill(AppStrings strings, BorderRadius radius) {
     return ClipRRect(
       borderRadius: radius,
       child: BackdropFilter.grouped(

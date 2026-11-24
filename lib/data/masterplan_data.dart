@@ -16,10 +16,25 @@ class MasterplanBuilding {
 }
 
 /// Amenity kinds labelled on the masterplan; the names are in `AppStrings`.
-enum AmenityKind { greenArea, playArea, padelCourt, waterFountain, sportsCourt }
+/// Each kind has one photo (the client's 3840x2160 render), shown when one of
+/// its labels is tapped.
+enum AmenityKind {
+  greenArea('green_area'),
+  playArea('play_area'),
+  padelCourt('padel_court'),
+  waterFountain('water_fountain'),
+  sportsCourt('sports_court');
 
-/// A non-interactive amenity label: kind, number (null when unnumbered), the
-/// label's centre, and its width in Figma (English 648:1892, Arabic 648:1344).
+  const AmenityKind(this.id);
+
+  /// Photo file name and the main screen's amenity modal id.
+  final String id;
+
+  String get photo => 'assets/images/masterplan/amenities/$id.jpg';
+}
+
+/// An amenity label: kind, number (null when unnumbered), the label's centre,
+/// and its width in Figma (English 648:1892, Arabic 648:1344).
 class MasterplanAmenity {
   const MasterplanAmenity(this.kind, this.number, this.center, this.widthEn, this.widthAr);
 

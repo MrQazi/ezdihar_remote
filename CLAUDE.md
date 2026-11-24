@@ -106,8 +106,10 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
   traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
   sub-path each) and `masterplanAmenities` (Green Area 1-9, Children's Playground 1-7 = Figma's
-  "Play Area", Padel Court 1-3, Water Fountain, Basketball and Volleyball Court: non-interactive
-  copper pills, names in `AppStrings.amenity` per the content doc). Tapping a building's outline or id label opens it. Figma's
+  "Play Area", Padel Court 1-3, Water Fountain, Basketball and Volleyball Court: copper pills,
+  names in `AppStrings.amenity` per the content doc; tapping one opens its kind's photo in `ImageModal`,
+  one photo per `AmenityKind` = `assets/images/masterplan/amenities/<kind id>.jpg`, the client's
+  3840x2160 renders sent in chat). Tapping a building's outline or id label opens it. Figma's
   Amenities nav tab is hidden in the frame, so it is not built. Types/counts
   come from `assets/data/building_details.json` via `BuildingType.loadAll()`
   (`lib/data/building_data.dart`), which also attaches each type's floors
@@ -155,6 +157,14 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   (`lib/screens/brochure_screen.dart`), a transparent full-screen modal showing
   `assets/pdfs/brochure.pdf` via `pdfx` (`PdfView`, portrait page centred in a padded, bordered frame sized to the page aspect, swipe + start/end arrow
   buttons, pinch zoom, page counter, X closes).
+- `ImageModal` (`lib/screens/image_modal.dart`, `ImageModal.open(context, images:, initialIndex:)`):
+  the brochure's layout for pictures (16:9 picture in the same bordered frame, Close top-end,
+  caption + "n / N" at the bottom, arrows / swipe / arrow keys when there are several, Esc closes);
+  each `ModalImage` carries its main-screen modal. Used by masterplan gallery tiles (all 9 renders,
+  opened at the tapped one) and amenity labels.
+- Every modal (brochure, image modal, restart dialog, idle prompt, register form, city landmark)
+  sits on a frosted backdrop: the screen behind is blurred and darkened. Use `ModalBackdrop`
+  (`lib/widgets/modal_backdrop.dart`, blur 16 + `AppColors.scrim`, takes no taps) for new ones.
 - Register Interest (Figma 41:3055 form, 100:17 thank-you; `lib/screens/register_interest_screen.dart`):
   the apartment details Register Interest button calls `RegisterInterestScreen.open(context)`, a
   transparent modal route with the "Your Information" form (name/email/phone validated, nothing
@@ -222,8 +232,10 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   rotation, plus `floor` code + `floorNumber` once a floor is selected and
   `apartmentType` once an apartment is). The player shows them on its placeholder screen (a state
   without media); how they pick media is not decided yet. The register form and thank-you screen have no
-  MirrorState, so the main screen keeps the previous state. Modals: a gallery tile tap sends
-  `ShowModal {kind: gallery, id: gallery_N}`, closing/leaving the gallery sends `HideModal`; the
+  MirrorState, so the main screen keeps the previous state. Modals: the gallery image modal sends
+  `ShowModal {kind: gallery, id: gallery_N}` for the render on screen, `HideModal` on close; an
+  amenity's image modal sends `ShowModal {kind: amenity, id: <kind id, e.g. padel_court>, title,
+  locale}` (the player does not handle `amenity` yet), `HideModal` on close; the
   brochure sends `ShowModal {kind: brochure, page}` on open and every page change, `HideModal` on
   close; an open city landmark sends `ShowModal {kind: landmark, id, title, description, metadata,
   locale}` (the card's texts in the current language, re-sent on language change; the player shows

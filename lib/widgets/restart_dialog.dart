@@ -6,14 +6,17 @@ import '../l10n/app_strings.dart';
 import '../services/ui_feedback.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
+import 'modal_backdrop.dart';
 
 /// Asks before restarting so a stray tap does not throw away the visitor's
 /// place. On confirm, pops the stack to the first page (the Restart convention).
 Future<void> confirmRestart(BuildContext context) async {
   final confirmed = await showDialog<bool>(
     context: context,
-    barrierColor: AppColors.scrim,
-    builder: (_) => const _RestartDialog(),
+    // The frosted ModalBackdrop replaces the plain barrier colour; it takes no
+    // taps, so tapping outside the dialog still cancels.
+    barrierColor: Colors.transparent,
+    builder: (_) => const ModalBackdrop(child: _RestartDialog()),
   );
   if (confirmed == true && context.mounted) {
     Navigator.of(context).popUntil((route) => route.isFirst);

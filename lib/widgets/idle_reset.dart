@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_strings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
+import 'modal_backdrop.dart';
 import 'restart_dialog.dart';
 
 /// Kiosk safety net: after [idleAfter] without input anywhere but the first
@@ -139,8 +140,7 @@ class _Warning extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onStay,
-      child: ColoredBox(
-        color: AppColors.scrim,
+      child: ModalBackdrop(
         child: Center(
           child: Material(
             type: MaterialType.transparency,

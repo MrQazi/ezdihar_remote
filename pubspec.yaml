@@ -73,6 +73,7 @@ flutter:
     - assets/images/city/
     - assets/images/city/landmarks/
     - assets/images/masterplan/
+    - assets/images/masterplan/amenities/
     - assets/images/building/
     - assets/images/building/views/
     - assets/images/apartments/
