@@ -134,7 +134,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   `<type>_<n>_reverse.mp4` (pre-reversed with ffmpeg), wrapping (A3 -> A1 = clip 3). The Drive
   sources are 2560x1440 at ~10 fps (30-46 frames), which stutters, so the bundled clips are
   motion-interpolated to 30 fps (ffmpeg `minterpolate` mci; fast foreground motion shows some
-  blending). The two clips a view can play next are loaded ahead (`_prepareClips`), and a clip is
+  blending). Known source issue: the black stripes on type A's view 2 <-> 3 orbit are in the
+  client's source video; the arts department re-renders it, nothing to fix in the app. The two clips a view can play next are loaded ahead (`_prepareClips`), and a clip is
   drawn over the still only once its first frame is up (a video surface is black until then). Clip n is the
   source "Frame n.mp4" (Drive "transition videos" / Building A|B|C). While a clip plays, input
   to rotate is ignored and the outlines are hidden; it lands on the next still (also when the clip
