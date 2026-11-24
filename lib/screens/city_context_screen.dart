@@ -79,7 +79,7 @@ class _CityContextScreenState extends State<CityContextScreen> {
       'id': landmark.id,
       'title': landmark.name(strings).trim(),
       'description': strings.landmarkDescription(landmark.id),
-      'metadata': strings.landmarkDistance(landmark.km, landmark.minutes),
+      'metadata': strings.landmarkDistance(landmark.minutes),
       'locale': strings.locale.languageCode,
     });
   }
@@ -219,6 +219,7 @@ class _Landmark {
     required this.tileLeft,
     required this.tileTop,
     required this.tileLabelWidth,
+    required this.minutes,
     this.labelSide = TileLabelSide.left,
   });
 
@@ -233,10 +234,9 @@ class _Landmark {
   final double tileLabelWidth;
   final TileLabelSide labelSide;
 
-  /// Drive from the project. Figma placeholder, the same for every landmark:
-  /// replace with each landmark's figures.
-  int get km => 28;
-  int get minutes => 26;
+  /// Drive time from the project, as on the client's Riyadh projects map
+  /// (xyz.narsunstudios.com/riyadh/projects), which gives minutes only.
+  final int minutes;
 
   String get image => '${CityContextScreen._assets}/landmarks/$id.jpg';
 
@@ -286,6 +286,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 928,
     tileTop: 115,
     tileLabelWidth: 166,
+    minutes: 15,
   ),
   _Landmark(
     id: 'equestrian_club',
@@ -294,6 +295,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 1135,
     tileTop: 140,
     tileLabelWidth: 138,
+    minutes: 10,
     labelSide: TileLabelSide.right,
   ),
   _Landmark(
@@ -303,6 +305,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 940,
     tileTop: 273,
     tileLabelWidth: 166,
+    minutes: 15,
   ),
   _Landmark(
     id: 'horse_racing_track',
@@ -311,6 +314,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 1229,
     tileTop: 273,
     tileLabelWidth: 156,
+    minutes: 5,
   ),
   _Landmark(
     id: 'khuzam_district',
@@ -319,6 +323,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 633,
     tileTop: 397,
     tileLabelWidth: 138,
+    minutes: 20,
     labelSide: TileLabelSide.right,
   ),
   _Landmark(
@@ -328,6 +333,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 1010,
     tileTop: 520,
     tileLabelWidth: 150,
+    minutes: 15,
   ),
   _Landmark(
     id: 'princess_nourah_university',
@@ -337,6 +343,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 1071,
     tileTop: 615,
     tileLabelWidth: 187,
+    minutes: 20,
     labelSide: TileLabelSide.right,
   ),
   _Landmark(
@@ -346,6 +353,7 @@ final _landmarks = <_Landmark>[
     tileLeft: 959,
     tileTop: 735,
     tileLabelWidth: 183,
+    minutes: 20,
   ),
 ];
 
@@ -637,7 +645,7 @@ class _LandmarkCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          strings.landmarkDistance(landmark.km, landmark.minutes),
+                          strings.landmarkDistance(landmark.minutes),
                           style: appText(strings, 16, FontWeight.w400, color: secondary).copyWith(height: 28 / 16),
                         ),
                       ],

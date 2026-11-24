@@ -128,7 +128,7 @@ void main() {
       'id': 'expo_2030',
       'title': 'Expo 2030 Riyadh',
       'description': startsWith('Expo 2030 Riyadh is a global exhibition'),
-      'metadata': '28 km · 26 min',
+      'metadata': '15 min',
       'locale': 'en',
     });
 

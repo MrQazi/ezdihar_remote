@@ -121,7 +121,7 @@ class AppStrings {
     'cameraError': 'The camera is not available',
     'previousLandmark': 'Previous',
     'nextLandmark': 'Next',
-    'landmarkDistance': '{km} km · {min} min',
+    'landmarkDistance': '{min} min',
     // Landmark descriptions: "Mashael Al Fursan_ Arabic Content" doc, keyed by landmark id.
     'landmarkDescription_king_salman_airport':
         'King Salman International Airport is a major aviation development planned to expand Riyadh’s passenger '
@@ -268,7 +268,7 @@ class AppStrings {
     'cameraError': 'الكاميرا غير متاحة',
     'previousLandmark': 'السابق',
     'nextLandmark': 'التالي',
-    'landmarkDistance': '{km} كم · {min} دقيقة',
+    'landmarkDistance': '{min} دقيقة',
     'landmarkDescription_king_salman_airport':
         'يُعد مطار الملك سلمان الدولي مشروعًا رئيسيًا لتطوير قطاع الطيران، ويهدف إلى زيادة الطاقة الاستيعابية '
         'لحركة المسافرين والشحن الجوي في الرياض. ويسعى المشروع إلى تعزيز ارتباط العاصمة بمختلف الوجهات '
@@ -409,8 +409,9 @@ class AppStrings {
   String get nextLandmark => _values['nextLandmark']!;
   /// Description of the city landmark with id [landmarkId] (e.g. "expo_2030").
   String landmarkDescription(String landmarkId) => _values['landmarkDescription_$landmarkId']!;
-  String landmarkDistance(int km, int minutes) =>
-      _values['landmarkDistance']!.replaceAll('{km}', '$km').replaceAll('{min}', '$minutes');
+  /// Drive time from the project to a landmark ("10 min").
+  String landmarkDistance(int minutes) =>
+      _values['landmarkDistance']!.replaceAll('{min}', '$minutes');
 
   /// Floor name in the project sheet's convention: English uses the sheet
   /// code as is ("GF", "1F".."6F"); Arabic uses the same short form

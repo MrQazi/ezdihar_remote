@@ -83,8 +83,10 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   sits bottom-start and Previous / Next (bottom-end, arrow keys too) cycle the landmarks with
   wrap-around. X, a tap on the dimmed map, Back (`PopScope`) or Esc close it. Photos are
   `assets/images/city/landmarks/<id>.jpg`; each landmark's name and description come from the content
-  doc (`AppStrings.landmarkDescription(id)`); the distance (28 km / 26 min) is still a Figma
-  placeholder shared by every landmark (`_Landmark.km/minutes`).
+  doc (`AppStrings.landmarkDescription(id)`); the drive time (`_Landmark.minutes`, shown
+  as "N min", no km) is from the client's web equivalent of this screen,
+  https://xyz.narsunstudios.com/riyadh/projects (Equestrian Club 10, King Salman / King Khalid
+  airports 15, Horse Racing Track 5, Khuzam 20, Expo 2030 15, both universities 20).
 - `MasterplanScreen` (Figma 24:1403 + Filters 49:5630 + Gallery 49:6205): bottom nav
   = Filters|Gallery tabs (the Gallery panel scrolls one tile per client render, Drive e1..e9 at
   full size: e1 is `background.jpg` (the map), e2..e9 `gallery_2..9.jpg`; decoded at 768px wide for
