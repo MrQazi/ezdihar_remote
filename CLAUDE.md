@@ -244,6 +244,10 @@ and mention the conflict to the user.
 Visual (background visibility):
 - Initial screen tint: radial gradient 60% -> 25% black (Figma: flat 64%).
 - Modal scrim `AppColors.scrim`: 64% black (Figma 80%).
+- Masterplan building outlines: solid 2px `AppColors.floorOutline` stroke + 12% fill (40% when
+  matching active filters, 60% on press), like the building screen's floors; Figma's 28% fill +
+  hairline did not show on the photo. Filtered-out buildings dim via colours, not an opacity
+  layer around the id pills' grouped backdrop blur (that drops the pills).
 - Glass panels are capped by `FitPanel` (max ~60% of screen height, gallery 50%, info/apartment
   panels 45% width); apartment details panel spacing is 32 (Figma 48) and plan image 190 high.
 - Secondary text on glass uses `AppColors.textSecondary` (white @ 72%), not Figma's 64%.

@@ -150,7 +150,8 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
     final types = {for (final t in _types) t.type: t};
     return [
       for (final b in masterplanBuildings)
-        if (types[b.type] case final type?) _BuildingSpot(b, type, matched: _matches(type)),
+        if (types[b.type] case final type?)
+          _BuildingSpot(b, type, matched: _matches(type), highlighted: _filtersActive && _matches(type)),
     ];
   }
 
@@ -664,7 +665,12 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
     return [
       Positioned.fromRect(
         rect: box,
-        child: _BuildingOutline(path: outline.shift(-box.topLeft), matched: b.matched, onTap: open),
+        child: _BuildingOutline(
+          path: outline.shift(-box.topLeft),
+          matched: b.matched,
+          highlighted: b.highlighted,
+          onTap: open,
+        ),
       ),
       // The label's touch target grows to 48 high around the 24px label.
       Positioned(
@@ -684,13 +690,17 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
 }
 
 class _BuildingSpot {
-  const _BuildingSpot(this.building, this.type, {this.matched = true});
+  const _BuildingSpot(this.building, this.type, {this.matched = true, this.highlighted = false});
 
   final MasterplanBuilding building;
   final BuildingType type;
 
   /// False when the active filters exclude this building (it is dimmed).
   final bool matched;
+
+  /// True when filters are active and this building matches them (its
+  /// outline fills in).
+  final bool highlighted;
 }
 
 /// Amenity label (Figma 648:2209): a translucent copper pill, text wrapped
@@ -735,14 +745,22 @@ class _AmenityLabel extends StatelessWidget {
   }
 }
 
-/// The orange outline traced over a building (Figma Vector 54..77). Only the
-/// shape takes taps; it fills in on hover/press and dims with the id label.
+/// The orange outline traced over a building (Figma Vector 54..77), drawn as
+/// the building screen draws floors so it reads on the photo. Only the shape
+/// takes taps; it fills in on hover/press and when it matches the filters,
+/// and dims with the id label when it does not.
 class _BuildingOutline extends StatefulWidget {
-  const _BuildingOutline({required this.path, required this.matched, required this.onTap});
+  const _BuildingOutline({
+    required this.path,
+    required this.matched,
+    required this.highlighted,
+    required this.onTap,
+  });
 
   /// The outline, relative to this widget's box (its bounds).
   final Path path;
   final bool matched;
+  final bool highlighted;
   final VoidCallback onTap;
 
   @override
@@ -777,7 +795,10 @@ class _BuildingOutlineState extends State<_BuildingOutline> {
             opacity: widget.matched ? 1 : 0.35,
             child: CustomPaint(
               size: Size.infinite,
-              painter: _ShapePainter(widget.path, fill: _active ? 0.6 : 0.28),
+              painter: _ShapePainter(
+                widget.path,
+                fill: _active ? 0.6 : (widget.highlighted ? 0.4 : 0.12),
+              ),
             ),
           ),
         ),
@@ -798,7 +819,9 @@ class _ShapeClipper extends CustomClipper<Path> {
   bool shouldReclip(_ShapeClipper old) => old.path != path;
 }
 
-/// Figma building outline: orange fill (28%) and a 64% hairline stroke.
+/// Building outline: translucent orange fill and a solid 2px orange stroke
+/// (as the building screen's floor outlines; Figma's 28% fill and hairline
+/// barely show on the photo). The shape clips the stroke to its inner half.
 class _ShapePainter extends CustomPainter {
   const _ShapePainter(this.path, {required this.fill});
 
@@ -811,9 +834,9 @@ class _ShapePainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = AppColors.floorOutline.withValues(alpha: 0.64)
+        ..color = AppColors.floorOutline
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
+        ..strokeWidth = 4,
     );
   }
 
