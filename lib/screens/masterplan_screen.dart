@@ -842,6 +842,8 @@ class _BuildingButton extends StatefulWidget {
 }
 
 class _BuildingButtonState extends State<_BuildingButton> {
+  static Color _dim(Color c, double o) => c.withValues(alpha: c.a * o);
+
   bool _hovered = false;
   bool _pressed = false;
 
@@ -865,10 +867,12 @@ class _BuildingButtonState extends State<_BuildingButton> {
         child: Semantics(
           button: true,
           label: widget.label,
-          child: AnimatedOpacity(
+          // Dimmed through the pill's own colours and blur: an opacity layer
+          // around the grouped BackdropFilter drops the whole pill.
+          child: TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 200),
-            opacity: widget.matched ? 1 : 0.35,
-            child: Center(
+            tween: Tween(end: widget.matched ? 1 : 0.35),
+            builder: (context, o, _) => Center(
               child: SizedBox(
                 height: 24,
                 width: double.infinity,
@@ -905,12 +909,12 @@ class _BuildingButtonState extends State<_BuildingButton> {
                       child: ClipRRect(
                         borderRadius: radius,
                         child: BackdropFilter.grouped(
-                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          filter: ImageFilter.blur(sigmaX: 20 * o, sigmaY: 20 * o),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: active ? AppColors.accent : AppColors.glass,
+                              color: _dim(active ? AppColors.accent : AppColors.glass, o),
                               borderRadius: radius,
-                              border: Border.all(color: AppColors.glassBorder, width: 0.48),
+                              border: Border.all(color: _dim(AppColors.glassBorder, o), width: 0.48),
                             ),
                             child: Center(
                               // Ids are Latin in both languages (as in Figma 648:1344);
@@ -919,7 +923,7 @@ class _BuildingButtonState extends State<_BuildingButton> {
                                 widget.label,
                                 style: GoogleFonts.rubik(
                                   fontSize: 12,
-                                  color: active ? AppColors.onLight : Colors.white,
+                                  color: _dim(active ? AppColors.onLight : Colors.white, o),
                                   height: 1,
                                   letterSpacing: 0.24,
                                 ),

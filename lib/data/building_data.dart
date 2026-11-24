@@ -125,7 +125,14 @@ class BuildingType {
     };
   }
 
-  static Future<List<BuildingType>> loadAll() async {
+  /// The bundled data never changes, so it is parsed once (a failed load is
+  /// not kept, so Retry reads the files again).
+  static List<BuildingType>? _loaded;
+
+  static Future<List<BuildingType>> loadAll() async =>
+      _loaded ??= await _load();
+
+  static Future<List<BuildingType>> _load() async {
     final [buildings, floors, apartments] =
         await Future.wait([_buildingsAsset, _floorsAsset, _apartmentsAsset].map(_byType));
     return [
