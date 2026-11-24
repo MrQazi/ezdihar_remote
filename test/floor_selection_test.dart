@@ -57,6 +57,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a slow press on a floor still selects it (QA: taps sometimes missed)', (tester) async {
+    await pumpBuilding(tester, 'en');
+    await tester.longPress(find.byTooltip('1F'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Floor Details'), findsOneWidget);
+    expect(find.text('Apartments'), findsOneWidget);
+  });
+
   testWidgets('the building panel fades out in place when a floor is selected', (tester) async {
     await pumpBuilding(tester, 'en');
     final building = find.text('Building Details');

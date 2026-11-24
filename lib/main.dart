@@ -7,6 +7,7 @@ import 'l10n/locale_controller.dart';
 import 'screens/initial_screen.dart';
 import 'services/player_connection.dart';
 import 'services/ui_feedback.dart';
+import 'theme/app_colors.dart';
 import 'widgets/app_canvas.dart';
 import 'widgets/directional_page_transitions.dart';
 import 'widgets/idle_reset.dart';
@@ -55,6 +56,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        // The screens are full-bleed photos; until one has decoded, dark shows
+        // through instead of Material's near-white surface (QA: white flash).
+        scaffoldBackgroundColor: AppColors.screenBackground,
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.android: DirectionalPageTransitionsBuilder(),

@@ -71,6 +71,14 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   VideoPlayerController? _clip;
   Timer? _clipTimeout;
 
+  /// The clip is drawn over the still only once it shows its first frame: a
+  /// video surface paints black until then (QA: dark flashes on rotation).
+  bool _clipShowing = false;
+
+  /// The two clips the view on screen can play next (forward and back), loaded
+  /// ahead so a rotation starts at once. Keyed by asset, with their loading.
+  final Map<String, (VideoPlayerController, Future<void>)> _prepared = {};
+
   /// Index into [_floors] of the selected floor, or null when none is selected.
   int? _floor;
   int? _apartment;
@@ -83,6 +91,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   void initState() {
     super.initState();
     _hintTimer = Timer(const Duration(seconds: 12), _dismissHint);
+    _prepareClips();
   }
 
   @override
@@ -107,7 +116,28 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     _hintTimer?.cancel();
     _clipTimeout?.cancel();
     _disposeClip(_clip);
+    for (final (clip, _) in _prepared.values) {
+      _disposeClip(clip);
+    }
     super.dispose();
+  }
+
+  /// Loads the clips a rotation from the view on screen would play and
+  /// releases any others (each holds a hardware decoder).
+  void _prepareClips() {
+    final n = _views.length;
+    if (n < 2) return;
+    final wanted = {_views[_view].clip, _views[(_view - 1 + n) % n].reverseClip};
+    for (final asset in _prepared.keys.toList()) {
+      if (!wanted.contains(asset)) _disposeClip(_prepared.remove(asset)!.$1);
+    }
+    for (final asset in wanted) {
+      if (_prepared.containsKey(asset)) continue;
+      final clip = VideoPlayerController.asset(asset);
+      // Errors surface again when the clip is used; keep them out of the zone.
+      final loading = clip.initialize()..catchError((Object _) {});
+      _prepared[asset] = (clip, loading);
+    }
   }
 
   void _dismissHint() {
@@ -167,15 +197,22 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     final to = (_view + delta) % _views.length;
     final asset = delta > 0 ? _views[_view].clip : _views[to].reverseClip;
     setState(() => _target = to);
-    final clip = VideoPlayerController.asset(asset);
+    final (clip, loading) = _prepared.remove(asset) ??
+        (() {
+          final c = VideoPlayerController.asset(asset);
+          return (c, c.initialize());
+        })();
     try {
-      await clip.initialize();
+      await loading;
       if (!mounted || _target != to) {
         _disposeClip(clip);
         return;
       }
       clip.addListener(_onClipTick);
-      setState(() => _clip = clip);
+      setState(() {
+        _clip = clip;
+        _clipShowing = false;
+      });
       // Lands anyway if the clip never reports its end.
       _clipTimeout = Timer(clip.value.duration + const Duration(seconds: 2), _finishRotation);
       await clip.play();
@@ -189,6 +226,9 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   void _onClipTick() {
     final value = _clip?.value;
     if (value == null) return;
+    if (!_clipShowing && value.isPlaying && value.position > Duration.zero) {
+      setState(() => _clipShowing = true);
+    }
     final ended = value.isInitialized &&
         !value.isPlaying &&
         value.position >= value.duration - const Duration(milliseconds: 100);
@@ -208,11 +248,17 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
       _target = null;
     });
     _precacheNeighbours();
+    _prepareClips();
     if (clip == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Once unmounted, dispose() has already released it.
       if (!mounted) return;
-      if (_clip == clip) setState(() => _clip = null);
+      if (_clip == clip) {
+        setState(() {
+          _clip = null;
+          _clipShowing = false;
+        });
+      }
       _disposeClip(clip);
     });
   }
@@ -284,7 +330,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
                     child: _ExteriorCanvas(
                       pulse: _floor == null,
                       view: _views.isEmpty ? null : _views[_view],
-                      clip: _clip,
+                      clip: _clipShowing ? _clip : null,
                       showOutlines: !_rotating && _clip == null,
                       floorCount: _floors.length,
                       selected: _floor,
@@ -806,6 +852,10 @@ class _FloorOutlineState extends State<_FloorOutline> {
     final active = _hovered || _pressed;
     return Tooltip(
       message: widget.label,
+      // Touch never triggers the tooltip: its long-press recogniser used to win
+      // over a slow tap, so the floor sometimes did not select (QA). A long
+      // press selects the floor instead (below); mouse hover still shows it.
+      triggerMode: TooltipTriggerMode.manual,
       // Only the traced shape takes taps (its box overlaps the neighbours').
       child: ClipPath(
         clipper: _PathClipper(widget.path),
@@ -819,6 +869,11 @@ class _FloorOutlineState extends State<_FloorOutline> {
           onTapDown: (_) => setState(() => _pressed = true),
           onTapCancel: () => setState(() => _pressed = false),
           onTap: () {
+            setState(() => _pressed = false);
+            widget.onTap();
+          },
+          // A press held past the tap timeout still selects.
+          onLongPress: () {
             setState(() => _pressed = false);
             widget.onTap();
           },

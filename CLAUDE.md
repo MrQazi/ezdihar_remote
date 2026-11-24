@@ -26,6 +26,9 @@ let the layout scale them (`BoxFit.cover` / `FittedBox`); compress (JPEG q92 for
 not downscale. A Figma export rendered above its source size (a vector with an image fill comes back
 at 2x) is stored at the fill's source size. Downloading needs www.figma.com, which the `ezdihar_remote`
 cloud environment allows. Full-size stills decode to ~33 MB each: precache only what is needed next.
+Screens are dark underneath (`ThemeData.scaffoldBackgroundColor` = `AppColors.screenBackground`), so
+a photo still decoding never flashes white; the masterplan decodes a building's first still (up to
+1.5 s) before opening it, and the city context warms the masterplan photo.
 
 ## Sources (links shared by the client)
 - Figma file: https://www.figma.com/design/7U3uK1v7FRA0dMmKdOSF97/Ezdihar-_-Mashael-Al-Fursan
@@ -126,9 +129,13 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   Stills are `assets/images/building/views/<type>_<n>.jpg`: the Figma frames' own renders (the
   original 3840x2160 uploads), never frames grabbed from the clips, so the outlines align;
   they match the clips' first frames (A3 -> A1 and B3 -> B1 clips end slightly off view 1). Rotate
-  buttons / arrow keys play the transition clips (`video_player`, bundled 1080p H.264 in
+  buttons / arrow keys play the transition clips (`video_player`, bundled 1080p H.264 Main@4.1 in
   `assets/videos/building/`): view n -> n+1 plays `<type>_<n>.mp4`, n+1 -> n plays
-  `<type>_<n>_reverse.mp4` (pre-reversed with ffmpeg), wrapping (A3 -> A1 = clip 3). Clip n is the
+  `<type>_<n>_reverse.mp4` (pre-reversed with ffmpeg), wrapping (A3 -> A1 = clip 3). The Drive
+  sources are 2560x1440 at ~10 fps (30-46 frames), which stutters, so the bundled clips are
+  motion-interpolated to 30 fps (ffmpeg `minterpolate` mci; fast foreground motion shows some
+  blending). The two clips a view can play next are loaded ahead (`_prepareClips`), and a clip is
+  drawn over the still only once its first frame is up (a video surface is black until then). Clip n is the
   source "Frame n.mp4" (Drive "transition videos" / Building A|B|C). While a clip plays, input
   to rotate is ignored and the outlines are hidden; it lands on the next still (also when the clip
   fails to load, e.g. in tests). Rotate buttons are hidden while a floor is selected.
@@ -136,7 +143,8 @@ cloud environment allows. Full-size stills decode to ~33 MB each: precache only 
   the type's floors top first (6F..GF); the floor stepper and arrow keys cover every floor in the
   data. Every view has one traced outline per floor (`BuildingView.floors`, top first; C2's
   Vector 51 traces five floors and is split per sub-path), hit-tested on the shape itself
-  (`_PathClipper`); on some views the bottom-centre Apartments panel covers the lowest outlines,
+  (`_PathClipper`); a tap or a long press selects (the floor tooltip is hover-only,
+  `TooltipTriggerMode.manual`: its touch long-press used to swallow slow taps); on some views the bottom-centre Apartments panel covers the lowest outlines,
   which the stepper still reaches. Tap empty space clears. Floors are labelled everywhere (title, breadcrumb, stepper, tooltips,
   panels, masterplan floor filter) with the sheet's names via `AppStrings.floorName` /
   `floorNameOfLevel`: English "GF", "1F".."6F", Arabic "الأرضي", "ط1".."ط6". Selected floor swaps

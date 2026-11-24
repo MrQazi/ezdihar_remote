@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/building_data.dart';
+import '../data/building_views.dart';
 import '../data/masterplan_data.dart';
 import '../l10n/app_strings.dart';
 import '../services/player_connection.dart';
@@ -156,11 +157,26 @@ class _MasterplanScreenState extends State<MasterplanScreen> {
     ];
   }
 
-  void _openBuilding(BuildingType type, String id) {
+  /// True while a building's first still is decoding before its screen opens.
+  bool _opening = false;
+
+  Future<void> _openBuilding(BuildingType type, String id) async {
+    if (_opening) return;
     _dismissHint();
     _view.currentState?.resetZoom();
     // The building's state closes the gallery modal on the main screen.
     setState(() => _selectedImage = null);
+    // Decode the first exterior still (a 3840x2160 render) before the screen
+    // slides in, so it arrives with its picture instead of an empty frame
+    // (QA: flash on opening an exterior). Capped so a slow decode never blocks.
+    final views = BuildingView.of(type.type);
+    if (views.isNotEmpty) {
+      _opening = true;
+      await precacheImage(AssetImage(views.first.image), context)
+          .timeout(const Duration(milliseconds: 1500), onTimeout: () {});
+      _opening = false;
+      if (!mounted) return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => BuildingDetailScreen(

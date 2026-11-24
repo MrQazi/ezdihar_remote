@@ -13,6 +13,10 @@ abstract final class AppColors {
   /// Bars around the app canvas on screens that are not 16:9.
   static const letterbox = Color(0xFF000000);
 
+  /// Behind every screen (the scaffold colour): what shows for the moment a
+  /// full-size photo is still decoding. Dark, so it never flashes white.
+  static const screenBackground = Color(0xFF000000);
+
   /// Dark brown frosted-glass fill (brown @ 64%) used by pills and icon buttons.
   static const glass = Color(0xA32D1C10);
 
