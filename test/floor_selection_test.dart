@@ -83,14 +83,16 @@ void main() {
     expect(showing('c_1'), isTrue);
 
     // No video plugin in tests: the clip fails to load and the view is shown at once.
-    await tester.tap(find.byTooltip('Rotate right'));
+    // Type C's views run the other way round, so its buttons step the other
+    // way: left goes C1 -> C2 (as right does on A and B).
+    await tester.tap(find.byTooltip('Rotate left'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(showing('c_2'), isTrue);
     expect(find.byTooltip('1F'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Rotate left'));
+    await tester.tap(find.byTooltip('Rotate right'));
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.byTooltip('Rotate left'));
+    await tester.tap(find.byTooltip('Rotate right'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(showing('c_4'), isTrue);
     expect(tester.takeException(), isNull);

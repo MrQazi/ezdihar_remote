@@ -28,6 +28,12 @@ class BuildingView {
 
   /// The views of building type [type] in rotation order (empty when unknown).
   static List<BuildingView> of(String type) => _views[type] ?? const [];
+
+  /// Type C's views (Figma C1..C4) go round the building the other way from
+  /// A's and B's, so its rotate buttons / arrow keys step the other way: the
+  /// camera turns the same way for the same button on every type. Clip n still
+  /// plays from view n to view n+1 (its first and last frames match those stills).
+  static bool turnsReversed(String type) => type == 'C';
 }
 
 /// Figma vector paths of the floor highlights per view (top floor first).

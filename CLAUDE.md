@@ -136,11 +136,15 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   A|B|C / Forward + Reversed "Frame n.mp4", 2560x1440, constant 15 fps), bundled as 1080p H.264
   Main@4.1 at their native 15 fps (no interpolation), the reverse files from their Reversed
   folders (B's Frame 2 / Frame 3 are over the Drive connector's 10 MB limit; the client sent those
-  four in chat). Playback is a platform
-  view (`VideoViewType.platformView`: ExoPlayer into a native SurfaceView, composited by the system
-  like a media player, not a texture redrawn in Flutter's frames). The two clips a view can play
-  next are loaded ahead (`_prepareClips`); the clip's surface lies under the still, which hides once
-  the clip has played ~100 ms (a new surface is black until its first frame). Clip n is the
+  four in chat). Playback is the default texture view (a platform view was tried in build 46 and
+  reverted: it cannot fade and needed a ~100 ms start delay). The two clips a view can play next are
+  loaded ahead (`_prepareClips`); a clip is drawn over the still once its first frame is up, and
+  when it ends it fades out over the landing still in 300 ms (`_landingFade`), which softens the
+  client clips whose last frame is not their landing still (A3 -> A1 and B3 -> B1 end at a different
+  camera position, C4 -> C1's fountain differs; the reversed files likewise start off). Type C's
+  views (C1..C4) go round the other way, so its buttons / arrow keys are swapped
+  (`BuildingView.turnsReversed`): the same button turns the camera the same way on every type,
+  and each clip still plays between the stills its ends match. Clip n is the
   source "Frame n.mp4" (Drive "transition videos" / Building A|B|C). While a clip plays, input
   to rotate is ignored and the outlines are hidden; it lands on the next still (also when the clip
   fails to load, e.g. in tests). Rotate buttons are hidden while a floor is selected.

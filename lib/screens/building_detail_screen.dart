@@ -74,10 +74,15 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   VideoPlayerController? _clip;
   Timer? _clipTimeout;
 
-  /// The clip's surface lies under the still, which hides only once the clip
-  /// has been playing for a moment: a video surface is black until its first
-  /// frame (QA: dark flashes on rotation).
+  /// The clip is drawn over the still only once it shows its first frame: a
+  /// video texture is black until then (QA: dark flashes on rotation).
   bool _clipShowing = false;
+
+  /// After the clip ends it fades out over the still it landed on, so a clip
+  /// whose last frame is not exactly that still (A3 -> A1, B3 -> B1, C4 -> C1
+  /// in the client's renders) does not jump.
+  bool _clipFading = false;
+  static const _landingFade = Duration(milliseconds: 300);
 
   /// The two clips the view on screen can play next (forward and back), loaded
   /// ahead so a rotation starts at once. Keyed by asset, with their loading.
@@ -126,12 +131,10 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     super.dispose();
   }
 
-  /// A transition clip played as a platform view: on Android ExoPlayer draws
-  /// into a native SurfaceView the system composites directly, like a media
-  /// player app, instead of a texture redrawn in Flutter's frames, so its
-  /// timing does not depend on how busy the UI is (QA: orbit jitter).
-  static VideoPlayerController _clipController(String asset) =>
-      VideoPlayerController.asset(asset, viewType: VideoViewType.platformView);
+  /// A transition clip, drawn as a texture in Flutter's frames (the default
+  /// view type): it can fade over the still, which a platform view cannot.
+  /// (A platform view was tried in build 46 and reverted.)
+  static VideoPlayerController _clipController(String asset) => VideoPlayerController.asset(asset);
 
   /// Loads the clips a rotation from the view on screen would play and
   /// releases any others (each holds a hardware decoder).
@@ -203,8 +206,12 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   /// clip between them: view n -> n+1 plays clip n, n+1 -> n plays clip n
   /// reversed (a pre-reversed file), wrapping from the last view to the first.
   /// Ignored while a transition is playing.
+  /// [delta] is the button / arrow key direction (1 = right). Type C's views
+  /// are numbered the other way round, so it turns the other way: its clips
+  /// still play from the still they start on to the one they end on.
   Future<void> _rotate(int delta) async {
     if (_views.length < 2 || _rotating) return;
+    if (BuildingView.turnsReversed(widget.type.type)) delta = -delta;
     final to = (_view + delta) % _views.length;
     final asset = delta > 0 ? _views[_view].clip : _views[to].reverseClip;
     setState(() => _target = to);
@@ -223,6 +230,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
       setState(() {
         _clip = clip;
         _clipShowing = false;
+        _clipFading = false;
       });
       // Lands anyway if the clip never reports its end.
       _clipTimeout = Timer(clip.value.duration + const Duration(seconds: 2), _finishRotation);
@@ -237,9 +245,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   void _onClipTick() {
     final value = _clip?.value;
     if (value == null) return;
-    // A little past the start: a native surface attached as playback starts
-    // can still be black for its first frame or two (15 fps: ~67 ms each).
-    if (!_clipShowing && value.isPlaying && value.position > const Duration(milliseconds: 100)) {
+    if (!_clipShowing && value.isPlaying && value.position > Duration.zero) {
       setState(() => _clipShowing = true);
     }
     final ended = value.isInitialized &&
@@ -248,8 +254,8 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     if (value.hasError || ended) _finishRotation();
   }
 
-  /// Shows the target view's still; the clip stays on top for one more frame,
-  /// so the still is painted underneath before the clip goes.
+  /// Shows the target view's still under the clip, then fades the clip's last
+  /// frame out over it ([_landingFade]) and releases the clip.
   void _finishRotation() {
     final target = _target;
     if (target == null || !mounted) return;
@@ -259,17 +265,19 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     setState(() {
       _view = target;
       _target = null;
+      _clipFading = clip != null;
     });
     _precacheNeighbours();
     _prepareClips();
     if (clip == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Timer(_landingFade, () {
       // Once unmounted, dispose() has already released it.
       if (!mounted) return;
       if (_clip == clip) {
         setState(() {
           _clip = null;
           _clipShowing = false;
+          _clipFading = false;
         });
       }
       _disposeClip(clip);
@@ -359,6 +367,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
                       view: _views.isEmpty ? null : _views[_view],
                       clip: _clip,
                       clipShowing: _clipShowing,
+                      clipFading: _clipFading,
                       showOutlines: !_rotating && _clip == null,
                       floorCount: _floors.length,
                       selected: _floor,
@@ -772,6 +781,7 @@ class _ExteriorCanvas extends StatefulWidget {
     required this.view,
     required this.clip,
     required this.clipShowing,
+    required this.clipFading,
     required this.showOutlines,
     required this.floorCount,
     required this.selected,
@@ -783,8 +793,11 @@ class _ExteriorCanvas extends StatefulWidget {
   final BuildingView? view;
   final VideoPlayerController? clip;
 
-  /// The clip has shown frames for a moment: the still over it hides.
+  /// The clip has shown its first frame: it is drawn over the still.
   final bool clipShowing;
+
+  /// The clip has ended: it fades out over the still it landed on.
+  final bool clipFading;
   final bool showOutlines;
 
   /// Floors in the data; outline i (top to bottom) is floor i, and outlines
@@ -843,23 +856,23 @@ class _ExteriorCanvasState extends State<_ExteriorCanvas> with SingleTickerProvi
     return Stack(
       fit: StackFit.expand,
       children: [
-        // The clip's native surface sits under the still from the moment the
-        // clip is loaded; the still covers it (a new surface is black) until
-        // the clip is under way, then hides.
-        if (clip != null) IgnorePointer(child: VideoPlayer(clip)),
         // Tapping empty space clears the selection.
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onSelect(null),
-          child: Visibility(
-            visible: !(clip != null && widget.clipShowing),
-            maintainState: true,
-            maintainAnimation: true,
-            maintainSize: true,
-            // Keyed by view, so landing on a new view does not fade it in again.
-            child: view == null ? const SizedBox.expand() : FadeInAsset(view.image, key: ValueKey(view.image)),
-          ),
+          // Keyed by view, so landing on a new view does not fade it in again.
+          child: view == null ? const SizedBox.expand() : FadeInAsset(view.image, key: ValueKey(view.image)),
         ),
+        // Over the still once its first frame is up; when it ends it fades
+        // out over the still it landed on.
+        if (clip != null && widget.clipShowing)
+          IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: widget.clipFading ? 0 : 1,
+              duration: _BuildingDetailScreenState._landingFade,
+              child: VideoPlayer(clip),
+            ),
+          ),
         if (widget.showOutlines)
           for (var i = 0; i < floors.length && i < widget.floorCount; i++) _positioned(i, floors[i]),
       ],
