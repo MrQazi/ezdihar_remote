@@ -83,13 +83,6 @@ const _buildingPhotos = {
   return views.isEmpty ? null : (views.first.image, Alignment.center);
 }
 
-/// Apartment Type pictures (Figma 689:3683): Figma has one interior for 1BR
-/// and 2BR and another for 3BR, which the larger types share.
-String _interior(String unitType) => switch (unitType.replaceAll(RegExp(r'\D'), '')) {
-      '1' || '2' => '$_assets/interior_1.jpg',
-      _ => '$_assets/interior_2.jpg',
-    };
-
 class _CompareScreenState extends State<CompareScreen> {
   late final List<ComparedApartment> _apartments = widget.initial.take(CompareScreen.maxApartments).toList();
 
@@ -131,9 +124,6 @@ class _CompareScreenState extends State<CompareScreen> {
     super.didChangeDependencies();
     for (final (asset, _) in _buildingPhotos.values) {
       precacheImage(_tileImage(asset), context);
-    }
-    for (final interior in ['$_assets/interior_1.jpg', '$_assets/interior_2.jpg']) {
-      precacheImage(_tileImage(interior), context);
     }
   }
 
@@ -384,7 +374,10 @@ class _CompareScreenState extends State<CompareScreen> {
           tiles: [
             for (final unitType in _pickedType!.apartmentTypes)
               _Tile(
-                image: _interior(unitType),
+                // The type's own floor plan (Figma has placeholder interiors).
+                image: _pickedType!.planAsset(unitType),
+                fit: BoxFit.contain,
+                background: AppColors.apartmentCard,
                 label: strings.unitTypeName(unitType),
                 // "Added" once every floor of this building with it is compared.
                 compared: _floorsWith(unitType).every((f) => _compared(f.code, unitType)),
@@ -849,6 +842,8 @@ class _Tile {
     required this.label,
     required this.onTap,
     this.alignment = Alignment.center,
+    this.fit = BoxFit.cover,
+    this.background,
     this.compared = false,
   });
 
@@ -856,6 +851,12 @@ class _Tile {
 
   /// Framing of the picture (physical: photos do not mirror in RTL).
   final Alignment alignment;
+
+  /// Photos fill the tile ([BoxFit.cover]); floor plans are shown whole.
+  final BoxFit fit;
+
+  /// Fill behind a picture that does not cover the tile (a floor plan).
+  final Color? background;
   final String label;
   final VoidCallback onTap;
 
@@ -898,10 +899,11 @@ class _TileFrame extends StatelessWidget {
                 type: MaterialType.transparency,
                 child: Ink(
                   decoration: BoxDecoration(
+                    color: tile.background,
                     borderRadius: radius,
                     image: DecorationImage(
                       image: _tileImage(tile.image),
-                      fit: BoxFit.cover,
+                      fit: tile.fit,
                       alignment: tile.alignment,
                     ),
                   ),

@@ -184,8 +184,9 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   603 / F06 / 13 are placeholders): Select Building tiles A/B/C from the exterior views; Select
   Building Number = `BuildingType.buildingIds` as text buttons (white @ 10%, `AppColors.compareChoice`,
   filling the slot: one column 8 apart up to six, else two to a row 4 apart, an odd last one
-  spanning); Apartment Type tiles = the building type's types, from
-  `assets/images/compare/interior_1|2.jpg` (1-2BR -> interior_1, 3BR+ -> interior_2); then Select
+  spanning); Apartment Type tiles = the building type's types, each showing its own floor plan
+  (`BuildingType.planAsset`, whole on `AppColors.apartmentCard`, as the building screen's apartment
+  cards; Figma's interior photos were placeholders and are removed); then Select
   Floor = every floor of the type, top first (descending), named via `floorName`, always one
   column; floors without that apartment type are listed but disabled (dimmed, not tappable), never
   skipped (the client's order: type before floor; Figma has the floor first). An apartment
