@@ -131,12 +131,17 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   they match the clips' first frames (A3 -> A1 and B3 -> B1 clips end slightly off view 1). Rotate
   buttons / arrow keys play the transition clips (`video_player`, bundled 1080p H.264 Main@4.1 in
   `assets/videos/building/`): view n -> n+1 plays `<type>_<n>.mp4`, n+1 -> n plays
-  `<type>_<n>_reverse.mp4` (pre-reversed with ffmpeg), wrapping (A3 -> A1 = clip 3). The Drive
-  sources are 2560x1440 at ~10 fps (30-46 frames), which stutters, so the bundled clips are
-  motion-interpolated to 30 fps (ffmpeg `minterpolate` mci; fast foreground motion shows some
-  blending). Known source issue: the black stripes on type A's view 2 <-> 3 orbit are in the
-  client's source video; the arts department re-renders it, nothing to fix in the app. The two clips a view can play next are loaded ahead (`_prepareClips`), and a clip is
-  drawn over the still only once its first frame is up (a video surface is black until then). Clip n is the
+  `<type>_<n>_reverse.mp4`, wrapping (A3 -> A1 = clip 3). Clips: the arts department's re-renders
+  (Drive "New" https://drive.google.com/drive/folders/1TtDOKNM0MkIZycs5h_3qzg7wmhpd0ayy, Building
+  A|B|C / Forward + Reversed "Frame n.mp4", 2560x1440, constant 15 fps), bundled as 1080p H.264
+  Main@4.1 at their native 15 fps (no interpolation), the reverse files from their Reversed
+  folders. Exception until they are sent another way: B's Frame 2 / Frame 3 (forward and reversed)
+  are over the Drive connector's 10 MB limit, so `b_2*` / `b_3*` are still the previous clips
+  (~10 fps sources motion-interpolated to 30 fps with ffmpeg `minterpolate`). Playback is a platform
+  view (`VideoViewType.platformView`: ExoPlayer into a native SurfaceView, composited by the system
+  like a media player, not a texture redrawn in Flutter's frames). The two clips a view can play
+  next are loaded ahead (`_prepareClips`); the clip's surface lies under the still, which hides once
+  the clip has played ~100 ms (a new surface is black until its first frame). Clip n is the
   source "Frame n.mp4" (Drive "transition videos" / Building A|B|C). While a clip plays, input
   to rotate is ignored and the outlines are hidden; it lands on the next still (also when the clip
   fails to load, e.g. in tests). Rotate buttons are hidden while a floor is selected.

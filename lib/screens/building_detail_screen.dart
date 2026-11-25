@@ -74,8 +74,9 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   VideoPlayerController? _clip;
   Timer? _clipTimeout;
 
-  /// The clip is drawn over the still only once it shows its first frame: a
-  /// video surface paints black until then (QA: dark flashes on rotation).
+  /// The clip's surface lies under the still, which hides only once the clip
+  /// has been playing for a moment: a video surface is black until its first
+  /// frame (QA: dark flashes on rotation).
   bool _clipShowing = false;
 
   /// The two clips the view on screen can play next (forward and back), loaded
@@ -125,6 +126,13 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     super.dispose();
   }
 
+  /// A transition clip played as a platform view: on Android ExoPlayer draws
+  /// into a native SurfaceView the system composites directly, like a media
+  /// player app, instead of a texture redrawn in Flutter's frames, so its
+  /// timing does not depend on how busy the UI is (QA: orbit jitter).
+  static VideoPlayerController _clipController(String asset) =>
+      VideoPlayerController.asset(asset, viewType: VideoViewType.platformView);
+
   /// Loads the clips a rotation from the view on screen would play and
   /// releases any others (each holds a hardware decoder).
   void _prepareClips() {
@@ -136,7 +144,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     }
     for (final asset in wanted) {
       if (_prepared.containsKey(asset)) continue;
-      final clip = VideoPlayerController.asset(asset);
+      final clip = _clipController(asset);
       // Errors surface again when the clip is used; keep them out of the zone.
       final loading = clip.initialize()..catchError((Object _) {});
       _prepared[asset] = (clip, loading);
@@ -202,7 +210,7 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
     setState(() => _target = to);
     final (clip, loading) = _prepared.remove(asset) ??
         (() {
-          final c = VideoPlayerController.asset(asset);
+          final c = _clipController(asset);
           return (c, c.initialize());
         })();
     try {
@@ -229,7 +237,9 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   void _onClipTick() {
     final value = _clip?.value;
     if (value == null) return;
-    if (!_clipShowing && value.isPlaying && value.position > Duration.zero) {
+    // A little past the start: a native surface attached as playback starts
+    // can still be black for its first frame or two (15 fps: ~67 ms each).
+    if (!_clipShowing && value.isPlaying && value.position > const Duration(milliseconds: 100)) {
       setState(() => _clipShowing = true);
     }
     final ended = value.isInitialized &&
@@ -347,7 +357,8 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
                     child: _ExteriorCanvas(
                       pulse: _floor == null,
                       view: _views.isEmpty ? null : _views[_view],
-                      clip: _clipShowing ? _clip : null,
+                      clip: _clip,
+                      clipShowing: _clipShowing,
                       showOutlines: !_rotating && _clip == null,
                       floorCount: _floors.length,
                       selected: _floor,
@@ -760,6 +771,7 @@ class _ExteriorCanvas extends StatefulWidget {
     required this.pulse,
     required this.view,
     required this.clip,
+    required this.clipShowing,
     required this.showOutlines,
     required this.floorCount,
     required this.selected,
@@ -770,6 +782,9 @@ class _ExteriorCanvas extends StatefulWidget {
   /// The view on screen (null for a type without views: blank canvas).
   final BuildingView? view;
   final VideoPlayerController? clip;
+
+  /// The clip has shown frames for a moment: the still over it hides.
+  final bool clipShowing;
   final bool showOutlines;
 
   /// Floors in the data; outline i (top to bottom) is floor i, and outlines
@@ -828,14 +843,23 @@ class _ExteriorCanvasState extends State<_ExteriorCanvas> with SingleTickerProvi
     return Stack(
       fit: StackFit.expand,
       children: [
+        // The clip's native surface sits under the still from the moment the
+        // clip is loaded; the still covers it (a new surface is black) until
+        // the clip is under way, then hides.
+        if (clip != null) IgnorePointer(child: VideoPlayer(clip)),
         // Tapping empty space clears the selection.
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onSelect(null),
-          // Keyed by view, so landing on a new view does not fade it in again.
-          child: view == null ? const SizedBox.expand() : FadeInAsset(view.image, key: ValueKey(view.image)),
+          child: Visibility(
+            visible: !(clip != null && widget.clipShowing),
+            maintainState: true,
+            maintainAnimation: true,
+            maintainSize: true,
+            // Keyed by view, so landing on a new view does not fade it in again.
+            child: view == null ? const SizedBox.expand() : FadeInAsset(view.image, key: ValueKey(view.image)),
+          ),
         ),
-        if (clip != null) IgnorePointer(child: VideoPlayer(clip)),
         if (widget.showOutlines)
           for (var i = 0; i < floors.length && i < widget.floorCount; i++) _positioned(i, floors[i]),
       ],
