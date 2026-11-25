@@ -200,10 +200,20 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   phone as "+966 0512345678", language, building type / unit type / building id / floor / source
   `apartment_details` | `compare`) is appended to `register_interest.jsonl` (the record, never
   rewritten; a line cut short is skipped) and `register_interest.xlsx` is rebuilt from it after each
-  one (sheet "Leads", every cell text so `+` and leading zeros survive, temp file + rename). Folder:
-  Android `Android/data/<app id>/files/leads/` (reachable over USB), elsewhere app documents
-  `/leads`. Edits to the xlsx in place are overwritten by the next submission: copy it off first.
-  Writes are queued one at a time. Data is not encrypted.
+  one (sheet "Leads", every cell text so `+` and leading zeros survive, temp file + rename). Folder
+  (`LeadStore.folderName`): Android `Internal storage/Ezdihar-Mashael Al Fursan` at the root of the
+  shared storage (outlives an uninstall, visible in the Files app and over USB), elsewhere app
+  documents. Edits to the xlsx in place are overwritten by the next submission: copy it off first.
+  Writes are queued one at a time. Data is not encrypted. Build 42 kept the leads in
+  `Android/data/com.narsun.ezdihar_remote/files/leads/`; `prepare()` (run at startup once access is
+  granted) moves them in, skipping lines already there, and deletes that folder.
+- Storage access gate (`StorageAccess`, `lib/services/storage_access.dart`, loaded in `main()`; uses
+  `permission_handler`): Android 11+ needs "All files access" (`MANAGE_EXTERNAL_STORAGE`, the app's
+  system settings page), Android 10 and below the storage permission (+ `requestLegacyExternalStorage`
+  on 10). Until granted, `MyApp`'s builder shows `StorageAccessScreen` instead of the navigator (no
+  route, idle reset or main-screen state yet): where the leads go + "Allow access". Refused -> the app
+  closes (`SystemNavigator.pop`) and asks again on the next open; after "Don't ask again" (Android
+  10 and below) it opens the app's settings first. `MyApp(storageAccess: null)` skips the gate (tests).
 - Convention: every Restart button on a screen (this and future ones) ends in
   `Navigator.popUntil((r) => r.isFirst)`, not a local state reset. Restart buttons on the
   masterplan/building screens go through `confirmRestart(context)` (`restart_dialog.dart`);
@@ -254,7 +264,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   `GetCurrentExperience`, `GetCurrentState`). `ScreenLinkButton` (initial screen, next to the language
   toggle) shows the link state and opens `PairScreen` (`mobile_scanner` camera window, accepts only
   `ws://host:port` codes, camera errors/permission denied shown in the window with Try again; plus a manual
-  IP/host + port bar, port default 3737, validated, prefilled from the saved pairing). Android needs INTERNET/CAMERA and cleartext traffic.
+  IP/host + port bar, port default 3737, validated, prefilled from the saved pairing). Android needs INTERNET/CAMERA and cleartext traffic
+  (and storage access for the leads, above).
 - Main screen mirroring: screens drive states of the player's `ezdihar` experience (each plays its
   video, then holds on its hero image). `MirrorState(state:, tag:)` (`lib/widgets/mirror_state.dart`,
   its `routeObserver` is on `MaterialApp.navigatorObservers`) sends `StartState {id, experience, tag}`
@@ -307,6 +318,7 @@ Sizing / touch:
   around the 32px X; masterplan id labels 48px-high target around the 24px pill).
 
 Behaviour (not in Figma):
+- Storage access screen before the app (client's request: no access -> app closes).
 - `IdleReset` (90s + 15s countdown) and `LocaleFade`; thank-you screen auto-restart (30s) and toast
   auto-dismiss (8s); extra "Browse more units" button on the thank-you screen.
 - `confirmRestart` dialog before Restart on masterplan and building screens.

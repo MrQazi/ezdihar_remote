@@ -141,6 +141,11 @@ class AppStrings {
     'unitType2': '2BR',
     'unitTypeN': '{n}BR',
     'saveError': 'Could not save your details. Please try again.',
+    'storageAccessTitle': 'Allow storage access',
+    'storageAccessBody': 'Register Interest details are saved on this tablet, in the folder below. '
+        'Allow access to all files to continue; without it the app closes.',
+    'storageAccessAllow': 'Allow access',
+    'internalStorage': 'Internal storage',
     // Landmark descriptions: "Mashael Al Fursan_ Arabic Content" doc, keyed by landmark id.
     'landmarkDescription_king_salman_airport':
         'King Salman International Airport is a major aviation development planned to expand Riyadh’s passenger '
@@ -307,6 +312,11 @@ class AppStrings {
     'unitType2': 'غرفتا نوم',
     'unitTypeN': '{n} غرف نوم',
     'saveError': 'تعذّر حفظ بياناتك. يرجى المحاولة مرة أخرى.',
+    'storageAccessTitle': 'اسمح بالوصول إلى التخزين',
+    'storageAccessBody': 'تُحفظ بيانات تسجيل الاهتمام على هذا الجهاز في المجلد أدناه. '
+        'اسمح بالوصول إلى جميع الملفات للمتابعة؛ وبدونه سيُغلق التطبيق.',
+    'storageAccessAllow': 'السماح بالوصول',
+    'internalStorage': 'وحدة التخزين الداخلية',
     'landmarkDescription_king_salman_airport':
         'يُعد مطار الملك سلمان الدولي مشروعًا رئيسيًا لتطوير قطاع الطيران، ويهدف إلى زيادة الطاقة الاستيعابية '
         'لحركة المسافرين والشحن الجوي في الرياض. ويسعى المشروع إلى تعزيز ارتباط العاصمة بمختلف الوجهات '
@@ -481,6 +491,10 @@ class AppStrings {
   String get removeFromCompare => _values['removeFromCompare']!;
   String get alreadyCompared => _values['alreadyCompared']!;
   String get saveError => _values['saveError']!;
+  String get storageAccessTitle => _values['storageAccessTitle']!;
+  String get storageAccessBody => _values['storageAccessBody']!;
+  String get storageAccessAllow => _values['storageAccessAllow']!;
+  String get internalStorage => _values['internalStorage']!;
 
   /// "Building Type A" for building type letter [type].
   String buildingTypeName(String type) => _values['buildingTypeName']!.replaceAll('{type}', type);

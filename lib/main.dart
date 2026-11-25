@@ -5,7 +5,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_strings.dart';
 import 'l10n/locale_controller.dart';
 import 'screens/initial_screen.dart';
+import 'screens/storage_access_screen.dart';
+import 'services/lead_store.dart';
 import 'services/player_connection.dart';
+import 'services/storage_access.dart';
 import 'services/ui_feedback.dart';
 import 'theme/app_colors.dart';
 import 'widgets/app_canvas.dart';
@@ -26,30 +29,48 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 400 << 20;
   UiFeedback.init(); // pre-load interaction sounds; never blocks startup
   await PlayerConnection.load(); // reconnects to the paired main screen, if any
-  runApp(MyApp(localeController: await LocaleController.load()));
+  // Leads are saved in shared storage: no app without access to it.
+  final storageAccess = await StorageAccess.load();
+  void prepareLeads() {
+    if (storageAccess.granted) LeadStore.instance.prepare();
+  }
+  prepareLeads();
+  storageAccess.addListener(prepareLeads);
+  runApp(MyApp(localeController: await LocaleController.load(), storageAccess: storageAccess));
 }
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, required this.localeController});
+  const MyApp({super.key, required this.localeController, this.storageAccess});
 
   final LocaleController localeController;
 
+  /// Until it is granted, [StorageAccessScreen] stands in for the whole app
+  /// (no navigator, so no screen, idle reset or main-screen state yet).
+  /// Null: not needed (tests).
+  final StorageAccess? storageAccess;
+
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(listenable: localeController, builder: (context, _) => _buildApp());
+    return ListenableBuilder(
+      listenable: Listenable.merge([localeController, ?storageAccess]),
+      builder: (context, _) => _buildApp(),
+    );
   }
 
   Widget _buildApp() {
     final locale = localeController.locale;
+    final access = storageAccess;
     return MaterialApp(
       navigatorKey: _navigatorKey,
       navigatorObservers: [MirrorState.routeObserver],
       builder: (context, child) => AppCanvas(
         child: LocaleFade(
           locale: locale,
-          child: IdleReset(navigatorKey: _navigatorKey, child: child!),
+          child: access == null || access.granted
+              ? IdleReset(navigatorKey: _navigatorKey, child: child!)
+              : StorageAccessScreen(access: access),
         ),
       ),
       title: 'Ezdihar Remote',

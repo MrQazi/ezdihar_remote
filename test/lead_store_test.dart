@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:excel/excel.dart';
@@ -82,6 +83,40 @@ void main() {
 
     expect((await store.readAll()).map((l) => l.name), ['First', 'Second']);
     expect(sheetRows(), hasLength(3));
+  });
+
+  group('leads saved in the previous folder (build 42)', () {
+    late Directory previous;
+    setUp(() async => previous = await Directory.systemTemp.createTemp('leads_previous'));
+    tearDown(() async {
+      if (await previous.exists()) await previous.delete(recursive: true);
+    });
+
+    test('move in once, before new ones, and the old folder goes', () async {
+      await LeadStore(directory: () async => previous).add(lead('Earlier'));
+      store = LeadStore(directory: () async => dir, previousDirectory: () async => previous);
+
+      await store.prepare();
+      expect(await previous.exists(), isFalse);
+      expect((await store.readAll()).map((l) => l.name), ['Earlier']);
+      expect(sheetRows(), hasLength(2));
+
+      await store.add(lead('Later'));
+      expect((await store.readAll()).map((l) => l.name), ['Earlier', 'Later']);
+      expect(sheetRows(), hasLength(3));
+    });
+
+    test('a move cut short is finished without doubling leads', () async {
+      final earlier = jsonEncode(lead('Earlier').toJson());
+      // The record was copied but the old folder not yet removed.
+      await File('${previous.path}/${LeadStore.logName}').writeAsString('$earlier\n');
+      await File('${dir.path}/${LeadStore.logName}').writeAsString('$earlier\n');
+      store = LeadStore(directory: () async => dir, previousDirectory: () async => previous);
+
+      await store.add(lead('Later'));
+      expect((await store.readAll()).map((l) => l.name), ['Earlier', 'Later']);
+      expect(await previous.exists(), isFalse);
+    });
   });
 
   test('submissions made together are all kept', () async {

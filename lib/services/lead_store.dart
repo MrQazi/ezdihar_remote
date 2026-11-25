@@ -90,7 +90,7 @@ class Lead {
       );
 }
 
-/// Keeps every Register Interest submission on the tablet, in a `leads` folder:
+/// Keeps every Register Interest submission on the tablet, in [folderName]:
 ///
 /// - [logName]: the record, one JSON object per line, only ever appended to,
 ///   so a crash or a full disk never loses earlier leads;
@@ -99,32 +99,70 @@ class Lead {
 ///   rebuilt from the record after each submission. Copy it off the tablet to
 ///   work on it; edits made in place are replaced by the next submission.
 ///
-/// On Android the folder is in the app's external files
-/// (`Android/data/<app id>/files/leads`), which a computer can open over USB;
-/// elsewhere it is in the app documents folder. Nothing is sent anywhere.
+/// On Android the folder is at the root of the shared storage
+/// (`Internal storage/Ezdihar-Mashael Al Fursan`), so it outlives the app and
+/// shows in the tablet's Files app and over USB; writing there needs
+/// `StorageAccess`, which the app asks for before it starts. Elsewhere it is in
+/// the app documents folder. Nothing is sent anywhere.
 class LeadStore {
-  LeadStore({Future<Directory> Function()? directory}) : _directory = directory ?? _defaultDirectory;
+  LeadStore({
+    Future<Directory> Function()? directory,
+    Future<Directory?> Function()? previousDirectory,
+  })  : _directory = directory ?? _defaultDirectory,
+        _previousDirectory = previousDirectory ?? (directory == null ? _defaultPreviousDirectory : _none);
 
   /// The app's store; tests replace it with one on a temporary folder.
   static LeadStore instance = LeadStore();
 
+  static const folderName = 'Ezdihar-Mashael Al Fursan';
   static const logName = 'register_interest.jsonl';
   static const sheetName = 'register_interest.xlsx';
 
   final Future<Directory> Function() _directory;
+  final Future<Directory?> Function() _previousDirectory;
 
   /// Submissions are written one at a time, in order.
   Future<void> _queue = Future.value();
 
+  /// Whether leads from [_previousDirectory] were looked for.
+  bool _tookOver = false;
+
+  static String get _sep => Platform.pathSeparator;
+
   static Future<Directory> _defaultDirectory() async {
-    Directory? base;
-    if (Platform.isAndroid) base = await getExternalStorageDirectory();
-    base ??= await getApplicationDocumentsDirectory();
-    return Directory('${base.path}${Platform.pathSeparator}leads');
+    if (Platform.isAndroid) {
+      // `<storage>/Android/data/<app id>/files`: the shared storage root is `<storage>`.
+      final appFiles = await getExternalStorageDirectory();
+      if (appFiles != null) {
+        return Directory('${appFiles.path.split('${_sep}Android$_sep').first}$_sep$folderName');
+      }
+    }
+    return Directory('${(await getApplicationDocumentsDirectory()).path}$_sep$folderName');
   }
+
+  /// Where build 42 kept the leads: the app's own files, deleted with the app.
+  static Future<Directory?> _defaultPreviousDirectory() async {
+    final base = Platform.isAndroid ? await getExternalStorageDirectory() : await getApplicationDocumentsDirectory();
+    return base == null ? null : Directory('${base.path}${_sep}leads');
+  }
+
+  static Future<Directory?> _none() async => null;
 
   /// The folder holding [logName] and [sheetName].
   Future<Directory> get directory => _directory();
+
+  /// Creates the folder and moves in leads saved in the previous location;
+  /// call once storage access is granted. Never throws.
+  Future<void> prepare() {
+    final done = _queue.then((_) async {
+      final dir = await _directory();
+      await dir.create(recursive: true);
+      final log = File(_path(dir, logName));
+      if (await _takeOver(log)) await _writeSheet(dir, await _read(log));
+    });
+    _queue = done.catchError((Object _) {});
+    return done.catchError((Object error) => debugPrint('LeadStore: could not prepare $folderName: $error'));
+  }
 
   /// Saves [lead]. Completes once it is in the record; throws when it could
   /// not be written (the visitor is then asked to try again).
@@ -138,6 +176,7 @@ class LeadStore {
     final dir = await _directory();
     await dir.create(recursive: true);
     final log = File(_path(dir, logName));
+    await _takeOver(log);
     // After a line cut short (power lost mid-write), start a new one, so only
     // that line is lost.
     final newLine = await _endsMidLine(log) ? '\n' : '';
@@ -155,6 +194,35 @@ class LeadStore {
   Future<List<Lead>> readAll() async {
     final log = File(_path(await _directory(), logName));
     return await log.exists() ? _read(log) : const [];
+  }
+
+  /// Appends the leads of the previous location's record to [log] (skipping
+  /// lines it already has, in case a move was cut short) and deletes the
+  /// previous folder. Looks once per run; a failure is logged, never thrown,
+  /// so it cannot stop a new lead from being saved. Returns whether it moved any.
+  Future<bool> _takeOver(File log) async {
+    if (_tookOver) return false;
+    _tookOver = true;
+    try {
+      final previous = await _previousDirectory();
+      if (previous == null || previous.absolute.path == log.parent.absolute.path) return false;
+      final old = File(_path(previous, logName));
+      if (!await old.exists()) return false;
+      final known = await log.exists() ? (await log.readAsLines()).toSet() : const <String>{};
+      final lines = [
+        for (final line in await old.readAsLines())
+          if (line.trim().isNotEmpty && !known.contains(line)) line,
+      ];
+      if (lines.isNotEmpty) {
+        final newLine = await _endsMidLine(log) ? '\n' : '';
+        await log.writeAsString('$newLine${lines.join('\n')}\n', mode: FileMode.append, flush: true);
+      }
+      await previous.delete(recursive: true);
+      return lines.isNotEmpty;
+    } catch (error) {
+      debugPrint('LeadStore: could not move the previous leads: $error');
+      return false;
+    }
   }
 
   static Future<List<Lead>> _read(File log) async => [
