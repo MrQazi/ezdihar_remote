@@ -20,15 +20,17 @@ import 'register_interest_screen.dart';
 
 const _assets = 'assets/images/compare';
 
-/// Apartment comparison (Figma 688:3008, 689:3207, 689:3472, 689:4463,
-/// 689:3932), a modal over the building screen, opened by its Compare
-/// Apartment button (Figma 688:2955).
+/// Apartment comparison (Figma 688:3008, 689:3207, 740:6332 / 740:6533,
+/// 740:6964, 689:3472, 689:4463, 689:3932), a modal over the building screen,
+/// opened by its Compare Apartment button (Figma 688:2955).
 ///
 /// Up to [maxApartments] apartment cards side by side (plan, building type,
-/// apartment type, area, floor, status). While there is room, one more slot
-/// adds an apartment: "Add apartment to compare", then Select Building, then
-/// Apartment Type. Full, the panel is "Apartments Comparison" and every card
-/// has a Register Interest button. A card's X takes it out again.
+/// apartment type, area, floor, building number, status). While there is
+/// room, one more slot adds an apartment: "Add apartment to compare", then
+/// Select Building (type), Select Building Number, Select Floor and Apartment
+/// Type, all from the data (Figma's numbers are placeholders). Full, the panel
+/// is "Apartments Comparison" and every card has a Register Interest button.
+/// A card's X takes it out again.
 ///
 /// X or Esc closes it; Back first steps out of the picker.
 class CompareScreen extends StatefulWidget {
@@ -55,7 +57,7 @@ class CompareScreen extends StatefulWidget {
 }
 
 /// What the add slot shows.
-enum _Step { prompt, building, apartmentType }
+enum _Step { prompt, building, buildingNumber, floor, apartmentType }
 
 /// Figma sizes: 357-wide cards 8 apart; a card without its button is 377 high.
 const _slotWidth = 357.0;
@@ -93,8 +95,11 @@ class _CompareScreenState extends State<CompareScreen> {
   /// Opened empty, the picker shows at once.
   late _Step _step = _apartments.isEmpty ? _Step.building : _Step.prompt;
 
-  /// The building type chosen in Select Building.
+  /// The choices made so far in the picker: building type (Select Building),
+  /// building id (Select Building Number) and floor (Select Floor).
   BuildingType? _pickedType;
+  String? _pickedBuilding;
+  FloorDetails? _pickedFloor;
 
   /// Every building type, for the picker (null while loading).
   List<BuildingType>? _types;
@@ -146,21 +151,50 @@ class _CompareScreenState extends State<CompareScreen> {
         'apartments': [for (final a in _apartments) a.mirror],
       });
 
-  /// Back in the picker: Apartment Type -> Select Building -> the prompt.
+  /// Back in the picker, one step at a time: Apartment Type -> Select Floor ->
+  /// Select Building Number -> Select Building -> the prompt.
   void _back() => setState(() {
-        _step = _step == _Step.apartmentType ? _Step.building : _Step.prompt;
-        _pickedType = null;
+        switch (_step) {
+          case _Step.apartmentType:
+            _pickedFloor = null;
+            _step = _Step.floor;
+          case _Step.floor:
+            _pickedBuilding = null;
+            _step = _Step.buildingNumber;
+          case _Step.buildingNumber:
+            _pickedType = null;
+            _step = _Step.building;
+          case _Step.building || _Step.prompt:
+            _step = _Step.prompt;
+        }
       });
 
   void _pickType(BuildingType type) => setState(() {
         _pickedType = type;
+        _step = _Step.buildingNumber;
+      });
+
+  void _pickBuilding(String id) => setState(() {
+        _pickedBuilding = id;
+        _step = _Step.floor;
+      });
+
+  void _pickFloor(FloorDetails floor) => setState(() {
+        _pickedFloor = floor;
         _step = _Step.apartmentType;
       });
 
   void _add(String unitType) {
     setState(() {
-      _apartments.add(ComparedApartment(type: _pickedType!, unitType: unitType));
+      _apartments.add(ComparedApartment(
+        type: _pickedType!,
+        unitType: unitType,
+        floor: _pickedFloor!.code,
+        buildingId: _pickedBuilding!,
+      ));
       _pickedType = null;
+      _pickedBuilding = null;
+      _pickedFloor = null;
       _step = _Step.prompt;
     });
     _mirror();
@@ -319,18 +353,42 @@ class _CompareScreenState extends State<CompareScreen> {
           failed: _loadFailed,
           onRetry: _retry,
         ),
+      _Step.buildingNumber => _PickerStep(
+          key: ValueKey('number ${_pickedType!.type}'),
+          title: strings.selectBuildingNumber,
+          onBack: _back,
+          labelSize: 12,
+          labelGap: 0,
+          choices: [
+            for (final id in _pickedType!.buildingIds) _Choice(label: id, onTap: () => _pickBuilding(id)),
+          ],
+        ),
+      _Step.floor => _PickerStep(
+          key: ValueKey('floor $_pickedBuilding'),
+          title: strings.selectFloor,
+          onBack: _back,
+          labelSize: 12,
+          labelGap: 0,
+          // Top floor first, as in Figma; only floors with apartments.
+          singleColumn: true,
+          choices: [
+            for (final floor in _pickedType!.floorDetails.reversed)
+              if (floor.apartmentTypes.isNotEmpty)
+                _Choice(label: strings.floorName(floor.code), onTap: () => _pickFloor(floor)),
+          ],
+        ),
       _Step.apartmentType => _PickerStep(
-          key: ValueKey('type ${_pickedType!.type}'),
+          key: ValueKey('type $_pickedBuilding ${_pickedFloor!.code}'),
           title: strings.apartmentType,
           onBack: _back,
           labelSize: 14,
           labelGap: 16,
           tiles: [
-            for (final unitType in _pickedType!.apartmentTypes)
+            for (final unitType in _pickedFloor!.apartmentTypes)
               _Tile(
                 image: _interior(unitType),
                 label: strings.unitTypeName(unitType),
-                compared: _apartments.any((a) => a.sameKindAs(_pickedType!.type, unitType)),
+                compared: _apartments.any((a) => a.isSame(_pickedBuilding!, _pickedFloor!.code, unitType)),
                 onTap: () => _add(unitType),
               ),
           ],
@@ -394,7 +452,8 @@ class _ApartmentCard extends StatelessWidget {
       (strings.buildingType, Text(apartment.type.type, style: style)),
       (strings.apartment, Text(strings.unitTypeName(apartment.unitType), style: style)),
       (strings.area, Text(details == null ? '-' : '${details.area} ${strings.areaUnit}', style: style)),
-      (strings.floor, Text(_floor(strings), style: style)),
+      (strings.floor, Text(strings.floorName(apartment.floor), style: style)),
+      (strings.buildingNo, Text(apartment.buildingId, style: style)),
       if (details != null) (strings.status, _Status(available: details.available, style: style)),
     ];
     return SizedBox(
@@ -446,19 +505,6 @@ class _ApartmentCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// The floor it was added from, else the floors that have this type
-  /// ("1F – 6F").
-  String _floor(AppStrings strings) {
-    if (apartment.floor case final floor?) return strings.floorName(floor);
-    final floors = apartment.floors;
-    if (floors.isEmpty) return '-';
-    if (floors.length == 1) return strings.floorName(floors.single.code);
-    final contiguous = floors.last.level - floors.first.level == floors.length - 1;
-    return contiguous
-        ? '${strings.floorName(floors.first.code)} – ${strings.floorName(floors.last.code)}'
-        : floors.map((f) => strings.floorName(f.code)).join(', ');
   }
 }
 
@@ -533,13 +579,16 @@ class _RegisterButton extends StatelessWidget {
 }
 
 /// A picker step in the add slot (Figma 689:3402 / 689:3683): back arrow and
-/// title, then the tiles two to a row (an odd last one spans the row).
+/// title, then the tiles two to a row (an odd last one spans the row), or
+/// a list of text buttons ([choices], Figma 740:6475 / 740:6676 / 740:7107).
 class _PickerStep extends StatelessWidget {
   const _PickerStep({
     super.key,
     required this.title,
     required this.onBack,
-    required this.tiles,
+    this.tiles = const [],
+    this.choices,
+    this.singleColumn = false,
     required this.labelSize,
     required this.labelGap,
     this.loading = false,
@@ -550,6 +599,12 @@ class _PickerStep extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
   final List<_Tile> tiles;
+
+  /// Text buttons instead of picture tiles.
+  final List<_Choice>? choices;
+
+  /// Keep [choices] in one column however many there are.
+  final bool singleColumn;
   final double labelSize;
   final double labelGap;
   final bool loading;
@@ -609,6 +664,8 @@ class _PickerStep extends StatelessWidget {
                     )
                   : loading
                       ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                      : choices != null
+                      ? _ChoiceList(choices: choices!, labelSize: labelSize, singleColumn: singleColumn)
                       : Column(
                           children: [
                             for (var r = 0; r < rows; r++) ...[
@@ -636,6 +693,87 @@ class _PickerStep extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A text choice of the picker (a building number or a floor).
+class _Choice {
+  const _Choice({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+}
+
+/// The text choices filling the picker's height (Figma 740:6475 / 740:7107:
+/// one column, 8 apart; 740:6676: more than six go two to a row, 4 apart,
+/// an odd last one spanning the row).
+class _ChoiceList extends StatelessWidget {
+  const _ChoiceList({required this.choices, required this.labelSize, required this.singleColumn});
+
+  final List<_Choice> choices;
+  final double labelSize;
+
+  /// Always one column (floors: at most seven, Figma 740:7107).
+  final bool singleColumn;
+
+  static const _maxSingleColumn = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final columns = singleColumn || choices.length <= _maxSingleColumn ? 1 : 2;
+    final gap = columns == 1 ? 8.0 : 4.0;
+    final rows = (choices.length / columns).ceil();
+    return Column(
+      children: [
+        for (var r = 0; r < rows; r++) ...[
+          if (r > 0) SizedBox(height: gap),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var c = 0; c < columns && r * columns + c < choices.length; c++) ...[
+                  if (c > 0) SizedBox(width: gap),
+                  Expanded(child: _ChoiceButton(choice: choices[r * columns + c], labelSize: labelSize)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Figma 740:6733: white @ 10%, 8 rounded, the label centred.
+class _ChoiceButton extends StatelessWidget {
+  const _ChoiceButton({required this.choice, required this.labelSize});
+
+  final _Choice choice;
+  final double labelSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final radius = BorderRadius.circular(8);
+    return Material(
+      color: AppColors.compareChoice,
+      borderRadius: radius,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: () {
+          UiFeedback.select();
+          choice.onTap();
+        },
+        child: Center(
+          child: Text(
+            choice.label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: appText(strings, labelSize, FontWeight.w400),
+          ),
+        ),
       ),
     );
   }

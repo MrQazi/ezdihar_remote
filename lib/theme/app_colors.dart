@@ -70,6 +70,10 @@ abstract final class AppColors {
   /// Apartment comparison (Figma 688:3134): cards and the add slot (white @ 8%),
   /// the "available" status dot, and the light Register Interest button.
   static const compareCard = Color(0x14FFFFFF);
+
+  /// Building number / floor buttons in the comparison picker (white @ 10%,
+  /// Figma 740:6733).
+  static const compareChoice = Color(0x1AFFFFFF);
   static const statusAvailable = Color(0xFF61963F);
   static const compareButton = Color(0xFFEEEEEE);
   static const compareButtonText = Color(0xFF1C2633);

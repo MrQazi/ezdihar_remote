@@ -131,6 +131,8 @@ class AppStrings {
     'compareSelectFirst': 'Select up to 3 apartments to compare',
     'addApartmentToCompare': 'Add apartment to compare',
     'selectBuilding': 'Select Building',
+    'selectBuildingNumber': 'Select Building Number',
+    'selectFloor': 'Select Floor',
     'apartmentType': 'Apartment Type',
     'buildingTypeName': 'Building Type {type}',
     'apartment': 'Apartment',
@@ -302,6 +304,8 @@ class AppStrings {
     'compareSelectFirst': 'اختر حتى 3 شقق للمقارنة',
     'addApartmentToCompare': 'أضف شقة للمقارنة',
     'selectBuilding': 'اختر المبنى',
+    'selectBuildingNumber': 'اختر رقم المبنى',
+    'selectFloor': 'اختر الطابق',
     'apartmentType': 'نوع الشقة',
     'buildingTypeName': 'المبنى من النوع {type}',
     'apartment': 'الشقة',
@@ -485,6 +489,8 @@ class AppStrings {
   String get compareSelectFirst => _values['compareSelectFirst']!;
   String get addApartmentToCompare => _values['addApartmentToCompare']!;
   String get selectBuilding => _values['selectBuilding']!;
+  String get selectBuildingNumber => _values['selectBuildingNumber']!;
+  String get selectFloor => _values['selectFloor']!;
   String get apartmentType => _values['apartmentType']!;
   String get apartment => _values['apartment']!;
   String get status => _values['status']!;

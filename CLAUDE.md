@@ -162,22 +162,28 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   `apartment_details.json`, plan image, Brochure / Register Interest buttons; availability is a
   badge: green "Available" 59:520 / red "Not Available" 221:35, `_AvailabilityRow`). Its X clears
   the apartment and brings the panels back.
-- Compare (Figma 688:2955 button; 688:3008 one card, 689:3207 Select Building, 689:3472 Apartment
-  Type, 689:4463 two cards, 689:3932 full; Arabic 689:4720 .. 689:5362;
+- Compare (Figma 688:2955 button; 688:3008 one card, 689:3207 Select Building, 740:6332 / 740:6533
+  Select Building Number (A / B), 740:6964 Select Floor, 689:3472 Apartment Type, 689:4463 two cards,
+  689:3932 full; Arabic 689:4720 .. 689:5362 incl. 740:7768 / 740:8098 / 740:7932;
   `lib/screens/compare_screen.dart`, `CompareScreen.open(context, initial:)`, a transparent modal
   route): the "Compare Apartment" pill (`icon_compare.svg`) sits bottom-end next to Restart on the
   building screen in all three views. From the building or floor view it opens empty, straight on
   Select Building; from the apartment view it opens with that apartment (building id + floor).
   Up to `CompareScreen.maxApartments` (3) `ComparedApartment`s (`lib/data/compared_apartment.dart`:
-  building type + unit type, optional floor / building id), one card each (plan, Building Type,
-  Apartment, Area, Floor, Status) plus an "Add apartment to compare" slot that turns into a
-  two-step picker (Select Building tiles A/B/C from the exterior views, then Apartment Type tiles
-  from `assets/images/compare/interior_1|2.jpg`: 1-2BR -> interior_1, 3BR+ -> interior_2; an
-  already compared type is greyed "Added" and cannot be picked; picker back arrow / Back / Esc step
-  back). A type picked in the comparison has no floor: its card lists the floors that have it
-  ("GF – 5F" when contiguous). All slots match the tallest card (`IntrinsicHeight`). When full the
-  title is "Apartments Comparison" and each card has Register Interest (opens the form with that
-  apartment). Each card's X removes it. Assets in `assets/images/compare/`.
+  building type + unit type + floor + building id, all required: every compared apartment is a
+  specific one), one card each (plan, Building Type, Apartment, Area, Floor, Building no., Status)
+  plus an "Add apartment to compare" slot that turns into a four-step picker, all from our data (Figma's
+  603 / F06 / 13 are placeholders): Select Building tiles A/B/C from the exterior views; Select
+  Building Number = `BuildingType.buildingIds` as text buttons (white @ 10%, `AppColors.compareChoice`,
+  filling the slot: one column 8 apart up to six, else two to a row 4 apart, an odd last one
+  spanning); Select Floor = that type's floors with apartments, top first, named via `floorName`,
+  always one column; Apartment Type tiles = that floor's types, from
+  `assets/images/compare/interior_1|2.jpg` (1-2BR -> interior_1, 3BR+ -> interior_2). The same
+  apartment (building + floor + type) already compared is greyed "Added" and cannot be picked;
+  picker back arrow / Back / Esc step back one step at a time. All slots match the tallest card
+  (`IntrinsicHeight`). When full the title is "Apartments Comparison" and each card has Register
+  Interest (opens the form with that apartment: the lead has the same fields as from the apartment
+  details, building id and floor included). Each card's X removes it. Assets in `assets/images/compare/`.
 - Brochure: the apartment details Brochure button calls `BrochureScreen.open(context)`
   (`lib/screens/brochure_screen.dart`), a transparent full-screen modal showing
   `assets/pdfs/brochure.pdf` via `pdfx` (`PdfView`, portrait page centred in a padded, bordered frame sized to the page aspect, swipe + start/end arrow
@@ -333,9 +339,8 @@ Behaviour (not in Figma):
 - Register form: validate-on-blur with error messages, autofill hints, next/done actions,
   country-code picker, digits-only phone, focus first invalid field; "could not save" message.
 - Compare: an X on each card removes it; an empty comparison opens straight on Select Building;
-  compared types show greyed "Added" in the picker; extra "Building Type" row on each card (types
-  from different buildings are compared); floor range text for a type picked by type; picker back
-  arrow; building type letters stay Latin in Arabic ("المبنى من النوع A").
+  compared apartments show greyed "Added" in the picker; extra "Building Type" row on each card;
+  picker back arrow; building type letters stay Latin in Arabic ("المبنى من النوع A").
 - Haptic + subtle sound on every interaction via `UiFeedback` (`lib/services/ui_feedback.dart`).
 
 ## Rules

@@ -56,13 +56,21 @@ void main() {
 
   Finder inCompare(Finder finder) => find.descendant(of: find.byType(CompareScreen), matching: finder);
 
-  /// Adds building type [type]'s [unitType] through the picker.
-  Future<void> pick(WidgetTester tester, String type, String unitType) async {
+  /// Adds [unitType] on [floor] of [building] through the picker: building
+  /// type, building number, floor, apartment type.
+  Future<void> pick(WidgetTester tester, String building, String floor, String unitType) async {
     if (find.text('Add apartment to compare').evaluate().isNotEmpty) {
       await tester.tap(find.text('Add apartment to compare'));
       await settle(tester);
     }
-    await tester.tap(find.text('Building Type $type'));
+    await tester.tap(find.text('Building Type ${building.substring(0, 1)}'));
+    await settle(tester);
+    expect(find.text('Select Building Number'), findsOneWidget);
+    // .last: a card may show the same id or floor; the picker comes after the cards.
+    await tester.tap(inCompare(find.text(building)).last);
+    await settle(tester);
+    expect(find.text('Select Floor'), findsOneWidget);
+    await tester.tap(inCompare(find.text(floor)).last);
     await settle(tester);
     expect(find.text('Apartment Type'), findsOneWidget);
     await tester.tap(find.text(unitType));
@@ -117,42 +125,47 @@ void main() {
     await tester.tap(find.text('Compare Apartment'));
     await settle(tester);
 
-    // Type A has four apartment types; its 2BR is only on 6F.
+    // Select Building, then the type's building numbers from the data.
     await tester.tap(find.text('Building Type A'));
     await settle(tester);
-    for (final unit in ['1BR', '2BR', '3BR', '4BR']) {
-      expect(find.text(unit), findsOneWidget);
+    for (final id in ['A01', 'A02', 'A03', 'A04', 'A05']) {
+      expect(inCompare(find.text(id)), findsOneWidget);
     }
+    await tester.tap(inCompare(find.text('A03')));
+    await settle(tester);
+    // Then its floors with apartments, top first; A's 2BR is only on 6F.
+    expect(find.text('Select Floor'), findsOneWidget);
+    await tester.tap(inCompare(find.text('6F')));
+    await settle(tester);
     await tester.tap(find.text('2BR'));
     await settle(tester);
     expect(find.text('Select one more apartment for comparison'), findsOneWidget);
     expect(inCompare(find.text('6F')), findsOneWidget);
+    expect(inCompare(find.text('A03')), findsOneWidget);
     expect(inCompare(find.text('135.83 M²')), findsOneWidget);
 
-    // The same type cannot be added twice.
-    await tester.tap(find.text('Add apartment to compare'));
-    await settle(tester);
-    await tester.tap(find.text('Building Type A'));
-    await settle(tester);
-    await tester.tap(find.text('2BR · Added'));
-    await settle(tester);
+    // The same apartment (building, floor, type) cannot be added twice.
+    await pick(tester, 'A03', '6F', '2BR · Added');
     expect(find.text('Apartment Type'), findsOneWidget);
 
     // Back steps out of the picker, one step at a time.
-    await tester.tap(find.byTooltip('Back').last);
-    await settle(tester);
-    expect(find.text('Select Building'), findsOneWidget);
+    for (final title in ['Select Floor', 'Select Building Number', 'Select Building']) {
+      await tester.tap(find.byTooltip('Back').last);
+      await settle(tester);
+      expect(find.text(title), findsOneWidget);
+    }
     await tester.tap(find.byTooltip('Back').last);
     await settle(tester);
     expect(find.text('Add apartment to compare'), findsOneWidget);
 
-    await pick(tester, 'B', '3BR');
+    // Type B has 15 buildings (two to a row).
+    await pick(tester, 'B12', '3F', '3BR');
     expect(find.text('Select one more apartment for comparison'), findsOneWidget);
-    // B's 3BR is on GF..5F.
-    expect(inCompare(find.text('GF – 5F')), findsOneWidget);
+    expect(inCompare(find.text('B12')), findsOneWidget);
+    expect(inCompare(find.text('3F')), findsOneWidget);
     expect(find.text('Register Interest'), findsNothing);
 
-    await pick(tester, 'C', '1BR');
+    await pick(tester, 'C02', '1F', '1BR');
     expect(find.text('Apartments Comparison'), findsOneWidget);
     expect(find.text('Add apartment to compare'), findsNothing);
     expect(find.text('Register Interest'), findsNWidgets(3));
@@ -175,9 +188,9 @@ void main() {
     await pumpBuilding(tester, 'en');
     await tester.tap(find.text('Compare Apartment'));
     await settle(tester);
-    await pick(tester, 'A', '2BR');
-    await pick(tester, 'B', '3BR');
-    await pick(tester, 'C', '1BR');
+    await pick(tester, 'A03', '6F', '2BR');
+    await pick(tester, 'B12', '3F', '3BR');
+    await pick(tester, 'C02', '1F', '1BR');
 
     await tester.tap(find.text('Register Interest').first);
     await settle(tester);
@@ -195,9 +208,11 @@ void main() {
     expect(lead.phone, '+966 0512345678');
     expect(lead.language, 'en');
     expect(lead.target!.source, InterestTarget.fromCompare);
+    // The same fields as Register Interest from the apartment details.
     expect(lead.target!.buildingType, 'A');
+    expect(lead.target!.buildingId, 'A03');
+    expect(lead.target!.floor, '6F');
     expect(lead.target!.unitType, '2BR');
-    expect(lead.target!.floor, isNull);
   });
 
   testWidgets('a lead that cannot be saved keeps the form open with a message', (tester) async {
@@ -229,6 +244,12 @@ void main() {
     await settle(tester);
     expect(find.text('اختر المبنى'), findsOneWidget);
     await tester.tap(find.text('المبنى من النوع A'));
+    await settle(tester);
+    expect(find.text('اختر رقم المبنى'), findsOneWidget);
+    await tester.tap(inCompare(find.text('A01')));
+    await settle(tester);
+    expect(find.text('اختر الطابق'), findsOneWidget);
+    await tester.tap(inCompare(find.text('ط6')));
     await settle(tester);
     expect(find.text('نوع الشقة'), findsOneWidget);
     expect(find.text('غرفة نوم واحدة'), findsOneWidget);

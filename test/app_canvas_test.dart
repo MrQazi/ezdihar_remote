@@ -33,7 +33,15 @@ void main() {
     'building': () => BuildingDetailScreen(type: types.first, buildingId: 'A01', onLocaleChanged: noop),
     'compare (picker)': () => const CompareScreen(),
     'compare (full)': () => CompareScreen(
-          initial: [for (final t in types) ComparedApartment(type: t, unitType: t.apartmentTypes.first)],
+          initial: [
+            for (final t in types)
+              ComparedApartment(
+                type: t,
+                unitType: t.apartmentTypes.first,
+                floor: t.floorDetails.lastWhere((f) => f.apartmentTypes.contains(t.apartmentTypes.first)).code,
+                buildingId: t.buildingIds.first,
+              ),
+          ],
         ),
     'register interest': () => const RegisterInterestScreen(),
     'thank you': () => const InterestRegisteredScreen(),
