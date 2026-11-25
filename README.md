@@ -15,13 +15,29 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+## Download the app
+
+- **Latest main build (for testing):**
+  https://github.com/Qazi-Narsun/ezdihar_remote/releases/tag/main-latest
+  — one pre-release, replaced by every push to `main` that passes analyze + test.
+- **Numbered releases:** https://github.com/Qazi-Narsun/ezdihar_remote/releases
+  (`v<version>-build<run>`, published from the `release` branch).
+
+Every APK (local, `main`, `release`) is signed with the same debug key
+(`android/app/debug.keystore`; the app is never published to a store), so any build
+installs over any other.
+
 ## CI builds
 
-`.github/workflows/android.yml` builds a release APK on every push to `main` (and on
-"Run workflow") and publishes it as a GitHub Release tagged `v<version>-build<run>`,
-with the APK named `ezdihar_remote_v<version>_build<run>_<sha>.apk`. Pull requests
-only build (the APK is attached to the run). Bump `version:` in `pubspec.yaml` to
-change the version part; the run number is used as the Android build number.
+`.github/workflows/android.yml` runs analyze, test and a release-mode APK build on every
+push to `main`, every PR into `main` and every push to `release`. The APK is named
+`ezdihar_remote_v<version>_build<run>_<sha>.apk`.
 
-Optional release signing: add `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`; otherwise builds use a debug key.
+- `main`: the APK replaces the `main-latest` pre-release (link above).
+- `release`: publishes a GitHub Release tagged `v<version>-build<run>`, only for a commit
+  whose `main` run passed. To release: push to `main`, wait for it to pass, then
+  fast-forward `release` to that commit and push it.
+- Pull requests only build (the APK is attached to the run).
+
+Bump `version:` in `pubspec.yaml` to change the version part; the run number is the
+Android build number.

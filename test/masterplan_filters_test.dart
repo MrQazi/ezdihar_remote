@@ -50,13 +50,15 @@ void main() {
     await tester.tap(find.text('C'));
     await settle(tester);
     expect(find.text('2 of 22 buildings match'), findsOneWidget);
-    // Filtered-out ids stay on the map (dimmed, not removed) and stay tappable.
+    // Filtered-out ids stay on the map (dimmed, not removed) but take no taps.
     expect(find.text('A01'), findsOneWidget);
     expect(find.text('C01'), findsOneWidget);
     final a01 = tester.widget<Text>(find.text('A01')).style!.color!;
     final c01 = tester.widget<Text>(find.text('C01')).style!.color!;
     expect(a01.a, lessThan(0.5));
     expect(c01.a, 1);
+    expect(find.text('A01').hitTestable(), findsNothing);
+    expect(find.text('C01').hitTestable(), findsOneWidget);
 
     await tester.tap(find.text('C'));
     await tester.tap(find.text('A'));

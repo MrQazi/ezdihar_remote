@@ -710,14 +710,19 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
     final box = outline.getBounds();
     final label = b.building.label;
     const target = _MapCanvas._labelTarget;
+    // A building the filters exclude stays on the map, dimmed, but takes no
+    // taps (QA): the touch falls through to the map underneath.
     return [
       Positioned.fromRect(
         rect: box,
-        child: _BuildingOutline(
-          path: outline.shift(-box.topLeft),
-          matched: b.matched,
-          highlighted: b.highlighted,
-          onTap: open,
+        child: IgnorePointer(
+          ignoring: !b.matched,
+          child: _BuildingOutline(
+            path: outline.shift(-box.topLeft),
+            matched: b.matched,
+            highlighted: b.highlighted,
+            onTap: open,
+          ),
         ),
       ),
       // The label's touch target grows to 48 high around the 24px label.
@@ -726,11 +731,14 @@ class _MapCanvasState extends State<_MapCanvas> with SingleTickerProviderStateMi
         top: label.center.dy - target / 2,
         width: label.width,
         height: target,
-        child: _BuildingButton(
-          label: b.building.id,
-          matched: b.matched,
-          pulse: _pulse,
-          onTap: open,
+        child: IgnorePointer(
+          ignoring: !b.matched,
+          child: _BuildingButton(
+            label: b.building.id,
+            matched: b.matched,
+            pulse: _pulse,
+            onTap: open,
+          ),
         ),
       ),
     ];
@@ -912,7 +920,7 @@ class _ShapePainter extends CustomPainter {
 
 /// Building id label (Figma 648:1986): a dark glass pill in a 48px-high touch
 /// target, with hover and press feedback, a pulse ring while the hint is
-/// showing, and a dimmed look when filtered out (it stays tappable).
+/// showing, and a dimmed look when filtered out (then it takes no taps).
 class _BuildingButton extends StatefulWidget {
   const _BuildingButton({
     required this.label,

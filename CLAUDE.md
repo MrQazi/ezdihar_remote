@@ -190,7 +190,7 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
     `popUntil(first)`. `LocaleFade` cross-fades on language change (state is kept).
   - Masterplan: building id labels have a 48px-high touch target (and the outline is tappable), hover/press feedback, a first-visit
     pulse + "Tap a building" hint (`StatusChip`, gone after 12s or first interaction), and are
-    dimmed when filtered out (building type, plus floor / size / availability select apartments:
+    dimmed and not tappable (`IgnorePointer`) when filtered out (building type, plus floor / size / availability select apartments:
     a building is lit when one of its apartments passes all of them; slider bounds come from the floor
     levels and apartment areas in the data). Chip shows "N of 22 match" / no-match with Clear filters / load error with Retry.
     Esc closes the panel. Pinch zooms 1x..3x around the fingers, double-tap toggles 2x at that
@@ -322,9 +322,9 @@ Behaviour (not in Figma):
 - CI (`.github/workflows/android.yml`, Flutter pinned by `FLUTTER_VERSION`) runs analyze + test +
   release APK build on every push to `main`, every PR into `main` and every push to `release`; only
   a `release` push publishes a GitHub release (each run uses a build number), and it refuses a
-  commit without a successful `main` run. Every passing `main` push replaces the `main-latest`
+  commit without a successful `main` run. Every passing `main` push replaces the single `main-latest`
   pre-release (never marked Latest) with its APK: the newest main build is always at
-  https://github.com/Qazi-Narsun/ezdihar_remote/releases/tag/main-latest. The app is never
+  https://github.com/Qazi-Narsun/ezdihar_remote/releases/tag/main-latest (also in README.md). The app is never
   published, so every build (debug and release, local and CI) is signed with the debug key
   committed at `android/app/debug.keystore` (standard `android` / `androiddebugkey` credentials):
   any build installs over any other. No signing secrets. "Make a release" = push to `main`, wait for that run to
