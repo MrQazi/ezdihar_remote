@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../l10n/app_strings.dart';
+import '../services/lead_store.dart';
 import '../services/ui_feedback.dart';
 import '../theme/app_colors.dart';
 import '../widgets/fit_panel.dart';
@@ -48,18 +49,21 @@ class _BlurredScrim extends StatelessWidget {
 }
 
 /// "Your Information" form (Figma 41:3055), shown as a modal over the previous
-/// screen. Pops with `true` once submitted; the caller then shows
-/// [InterestRegisteredScreen].
+/// screen. A valid submission is saved on the tablet ([LeadStore]) and the
+/// form pops with `true`; the caller then shows [InterestRegisteredScreen].
 class RegisterInterestScreen extends StatefulWidget {
-  const RegisterInterestScreen({super.key});
+  const RegisterInterestScreen({super.key, this.target});
+
+  /// The apartment the visitor is interested in, saved with their details.
+  final InterestTarget? target;
 
   /// Opens the form and, once it is filled in, the thank-you screen.
-  static Future<void> open(BuildContext context) async {
+  static Future<void> open(BuildContext context, {InterestTarget? target}) async {
     final navigator = Navigator.of(context);
     final submitted = await navigator.push<bool>(
       PageRouteBuilder<bool>(
         opaque: false,
-        pageBuilder: (_, _, _) => const RegisterInterestScreen(),
+        pageBuilder: (_, _, _) => RegisterInterestScreen(target: target),
         transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: animation, child: child),
       ),
     );
@@ -89,6 +93,9 @@ class _RegisterInterestScreenState extends State<RegisterInterestScreen> {
   String _countryCode = _countryCodes.first;
   bool _submitted = false;
   bool _closing = false;
+
+  /// The details could not be saved; the visitor can try again.
+  bool _saveFailed = false;
 
   /// Fields the visitor has left at least once: errors show on blur, not
   /// while they are still typing the first time.
@@ -121,11 +128,29 @@ class _RegisterInterestScreenState extends State<RegisterInterestScreen> {
 
   bool _showError(FocusNode node, bool valid) => (_submitted || _touched.contains(node)) && !valid;
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_closing) return;
     setState(() => _submitted = true);
     if (_nameValid && _emailValid && _phoneValid) {
       _closing = true;
+      final lead = Lead(
+        time: DateTime.now(),
+        name: _name.text.trim(),
+        email: _email.text.trim(),
+        phone: '$_countryCode ${_phone.text.trim()}',
+        language: AppStrings.of(context).locale.languageCode,
+        target: widget.target,
+      );
+      try {
+        await LeadStore.instance.add(lead);
+      } catch (error) {
+        debugPrint('Register interest: could not save the lead: $error');
+        _closing = false;
+        UiFeedback.error();
+        if (mounted) setState(() => _saveFailed = true);
+        return;
+      }
+      if (!mounted) return;
       UiFeedback.success();
       Navigator.of(context).pop(true);
     } else {
@@ -242,6 +267,14 @@ class _RegisterInterestScreenState extends State<RegisterInterestScreen> {
                               ),
                             ),
                           ),
+                          if (_saveFailed) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              strings.saveError,
+                              textAlign: TextAlign.center,
+                              style: _text(strings, 14, FontWeight.w400, color: AppColors.fieldErrorText),
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -124,6 +124,28 @@ class AppStrings {
     'previousLandmark': 'Previous',
     'nextLandmark': 'Next',
     'landmarkDistance': '{min} min',
+    'compareApartment': 'Compare Apartment',
+    'compareApartments': 'Compare Apartments',
+    'apartmentsComparison': 'Apartments Comparison',
+    'compareSelectMore': 'Select one more apartment for comparison',
+    'compareSelectFirst': 'Select up to 3 apartments to compare',
+    'addApartmentToCompare': 'Add apartment to compare',
+    'selectBuilding': 'Select Building',
+    'apartmentType': 'Apartment Type',
+    'buildingTypeName': 'Building Type {type}',
+    'apartment': 'Apartment',
+    'status': 'Status',
+    'removeFromCompare': 'Remove from comparison',
+    'alreadyCompared': 'Added',
+    'unitType1': '1BR',
+    'unitType2': '2BR',
+    'unitTypeN': '{n}BR',
+    'saveError': 'Could not save your details. Please try again.',
+    'storageAccessTitle': 'Allow storage access',
+    'storageAccessBody': 'Register Interest details are saved on this tablet, in the folder below. '
+        'Allow access to all files to continue; without it the app closes.',
+    'storageAccessAllow': 'Allow access',
+    'internalStorage': 'Internal storage',
     // Landmark descriptions: "Mashael Al Fursan_ Arabic Content" doc, keyed by landmark id.
     'landmarkDescription_king_salman_airport':
         'King Salman International Airport is a major aviation development planned to expand Riyadh’s passenger '
@@ -273,6 +295,28 @@ class AppStrings {
     'previousLandmark': 'السابق',
     'nextLandmark': 'التالي',
     'landmarkDistance': '{min} دقيقة',
+    'compareApartment': 'مقارنة الشقق',
+    'compareApartments': 'مقارنة الشقق',
+    'apartmentsComparison': 'مقارنة الشقق',
+    'compareSelectMore': 'اختر شقة أخرى للمقارنة',
+    'compareSelectFirst': 'اختر حتى 3 شقق للمقارنة',
+    'addApartmentToCompare': 'أضف شقة للمقارنة',
+    'selectBuilding': 'اختر المبنى',
+    'apartmentType': 'نوع الشقة',
+    'buildingTypeName': 'المبنى من النوع {type}',
+    'apartment': 'الشقة',
+    'status': 'الحالة',
+    'removeFromCompare': 'إزالة من المقارنة',
+    'alreadyCompared': 'مضافة',
+    'unitType1': 'غرفة نوم واحدة',
+    'unitType2': 'غرفتا نوم',
+    'unitTypeN': '{n} غرف نوم',
+    'saveError': 'تعذّر حفظ بياناتك. يرجى المحاولة مرة أخرى.',
+    'storageAccessTitle': 'اسمح بالوصول إلى التخزين',
+    'storageAccessBody': 'تُحفظ بيانات تسجيل الاهتمام على هذا الجهاز في المجلد أدناه. '
+        'اسمح بالوصول إلى جميع الملفات للمتابعة؛ وبدونه سيُغلق التطبيق.',
+    'storageAccessAllow': 'السماح بالوصول',
+    'internalStorage': 'وحدة التخزين الداخلية',
     'landmarkDescription_king_salman_airport':
         'يُعد مطار الملك سلمان الدولي مشروعًا رئيسيًا لتطوير قطاع الطيران، ويهدف إلى زيادة الطاقة الاستيعابية '
         'لحركة المسافرين والشحن الجوي في الرياض. ويسعى المشروع إلى تعزيز ارتباط العاصمة بمختلف الوجهات '
@@ -433,6 +477,39 @@ class AppStrings {
       _values['matchCount']!.replaceAll('{n}', '$n').replaceAll('{total}', '$total');
   String stillThereBody(int seconds) => _values['stillThereBody']!.replaceAll('{s}', '$seconds');
   String bedrooms(String n) => _values['bedrooms']!.replaceAll('{n}', n);
+
+  String get compareApartment => _values['compareApartment']!;
+  String get compareApartments => _values['compareApartments']!;
+  String get apartmentsComparison => _values['apartmentsComparison']!;
+  String get compareSelectMore => _values['compareSelectMore']!;
+  String get compareSelectFirst => _values['compareSelectFirst']!;
+  String get addApartmentToCompare => _values['addApartmentToCompare']!;
+  String get selectBuilding => _values['selectBuilding']!;
+  String get apartmentType => _values['apartmentType']!;
+  String get apartment => _values['apartment']!;
+  String get status => _values['status']!;
+  String get removeFromCompare => _values['removeFromCompare']!;
+  String get alreadyCompared => _values['alreadyCompared']!;
+  String get saveError => _values['saveError']!;
+  String get storageAccessTitle => _values['storageAccessTitle']!;
+  String get storageAccessBody => _values['storageAccessBody']!;
+  String get storageAccessAllow => _values['storageAccessAllow']!;
+  String get internalStorage => _values['internalStorage']!;
+
+  /// "Building Type A" for building type letter [type].
+  String buildingTypeName(String type) => _values['buildingTypeName']!.replaceAll('{type}', type);
+
+  /// Apartment type name: the sheet's id in English ("2BR"), the bedrooms in
+  /// Arabic ("غرفتا نوم"), as in the compare frames (Figma 689:3472).
+  String unitTypeName(String unitType) {
+    final n = unitType.replaceAll(RegExp(r'\D'), '');
+    return switch (n) {
+      '' => unitType,
+      '1' => _values['unitType1']!,
+      '2' => _values['unitType2']!,
+      _ => _values['unitTypeN']!.replaceAll('{n}', n),
+    };
+  }
 
   /// Masterplan amenity label, e.g. "Green Area 4"; [kind] is an
   /// `AmenityKind` name.

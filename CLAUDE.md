@@ -159,9 +159,25 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   collapses the panel (info button reopens); Apartments X clears the selection.
 - Apartment details (Figma 59:454): tapping an apartment card replaces both panels with
   `_ApartmentDetailsPanel` (bottom-start: floor, type, area, availability from
-  `apartment_details.json`, plan image, Brochure / Register Interest placeholders; availability is a
+  `apartment_details.json`, plan image, Brochure / Register Interest buttons; availability is a
   badge: green "Available" 59:520 / red "Not Available" 221:35, `_AvailabilityRow`). Its X clears
   the apartment and brings the panels back.
+- Compare (Figma 688:2955 button; 688:3008 one card, 689:3207 Select Building, 689:3472 Apartment
+  Type, 689:4463 two cards, 689:3932 full; Arabic 689:4720 .. 689:5362;
+  `lib/screens/compare_screen.dart`, `CompareScreen.open(context, initial:)`, a transparent modal
+  route): the "Compare Apartment" pill (`icon_compare.svg`) sits bottom-end next to Restart on the
+  building screen in all three views. From the building or floor view it opens empty, straight on
+  Select Building; from the apartment view it opens with that apartment (building id + floor).
+  Up to `CompareScreen.maxApartments` (3) `ComparedApartment`s (`lib/data/compared_apartment.dart`:
+  building type + unit type, optional floor / building id), one card each (plan, Building Type,
+  Apartment, Area, Floor, Status) plus an "Add apartment to compare" slot that turns into a
+  two-step picker (Select Building tiles A/B/C from the exterior views, then Apartment Type tiles
+  from `assets/images/compare/interior_1|2.jpg`: 1-2BR -> interior_1, 3BR+ -> interior_2; an
+  already compared type is greyed "Added" and cannot be picked; picker back arrow / Back / Esc step
+  back). A type picked in the comparison has no floor: its card lists the floors that have it
+  ("GF – 5F" when contiguous). All slots match the tallest card (`IntrinsicHeight`). When full the
+  title is "Apartments Comparison" and each card has Register Interest (opens the form with that
+  apartment). Each card's X removes it. Assets in `assets/images/compare/`.
 - Brochure: the apartment details Brochure button calls `BrochureScreen.open(context)`
   (`lib/screens/brochure_screen.dart`), a transparent full-screen modal showing
   `assets/pdfs/brochure.pdf` via `pdfx` (`PdfView`, portrait page centred in a padded, bordered frame sized to the page aspect, swipe + start/end arrow
@@ -171,14 +187,34 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   caption + "n / N" at the bottom, arrows / swipe / arrow keys when there are several, Esc closes);
   each `ModalImage` carries its main-screen modal. Used by masterplan gallery tiles (all 9 renders,
   opened at the tapped one) and amenity labels.
-- Every modal (brochure, image modal, restart dialog, idle prompt, register form, city landmark)
+- Every modal (brochure, image modal, restart dialog, idle prompt, register form, city landmark, compare)
   sits on a frosted backdrop: the screen behind is blurred and darkened. Use `ModalBackdrop`
   (`lib/widgets/modal_backdrop.dart`, blur 16 + `AppColors.scrim`, takes no taps) for new ones.
 - Register Interest (Figma 41:3055 form, 100:17 thank-you; `lib/screens/register_interest_screen.dart`):
-  the apartment details Register Interest button calls `RegisterInterestScreen.open(context)`, a
-  transparent modal route with the "Your Information" form (name/email/phone validated, nothing
-  sent anywhere yet). On submit it pushes `InterestRegisteredScreen` (blurred exterior view A1, logo,
-  Restart Experience = popUntil first, dismissible toast top-end). Assets in `assets/images/register/`.
+  the apartment details and comparison Register Interest buttons call
+  `RegisterInterestScreen.open(context, target: InterestTarget(...))`, a transparent modal route with
+  the "Your Information" form (name/email/phone validated). On submit the lead is saved on the tablet
+  (`LeadStore`, below); if that fails the form stays open with `saveError`, otherwise it pushes
+  `InterestRegisteredScreen` (blurred exterior view A1, logo, Restart Experience = popUntil first,
+  dismissible toast top-end). Nothing is sent anywhere. Assets in `assets/images/register/`.
+- Leads (`lib/services/lead_store.dart`, `LeadStore.instance`): every submission (time, name, email,
+  phone as "+966 0512345678", language, building type / unit type / building id / floor / source
+  `apartment_details` | `compare`) is appended to `register_interest.jsonl` (the record, never
+  rewritten; a line cut short is skipped) and `register_interest.xlsx` is rebuilt from it after each
+  one (sheet "Leads", every cell text so `+` and leading zeros survive, temp file + rename). Folder
+  (`LeadStore.folderName`): Android `Internal storage/Ezdihar-Mashael Al Fursan` at the root of the
+  shared storage (outlives an uninstall, visible in the Files app and over USB), elsewhere app
+  documents. Edits to the xlsx in place are overwritten by the next submission: copy it off first.
+  Writes are queued one at a time. Data is not encrypted. Build 42 kept the leads in
+  `Android/data/com.narsun.ezdihar_remote/files/leads/`; `prepare()` (run at startup once access is
+  granted) moves them in, skipping lines already there, and deletes that folder.
+- Storage access gate (`StorageAccess`, `lib/services/storage_access.dart`, loaded in `main()`; uses
+  `permission_handler`): Android 11+ needs "All files access" (`MANAGE_EXTERNAL_STORAGE`, the app's
+  system settings page), Android 10 and below the storage permission (+ `requestLegacyExternalStorage`
+  on 10). Until granted, `MyApp`'s builder shows `StorageAccessScreen` instead of the navigator (no
+  route, idle reset or main-screen state yet): where the leads go + "Allow access". Refused -> the app
+  closes (`SystemNavigator.pop`) and asks again on the next open; after "Don't ask again" (Android
+  10 and below) it opens the app's settings first. `MyApp(storageAccess: null)` skips the gate (tests).
 - Convention: every Restart button on a screen (this and future ones) ends in
   `Navigator.popUntil((r) => r.isFirst)`, not a local state reset. Restart buttons on the
   masterplan/building screens go through `confirmRestart(context)` (`restart_dialog.dart`);
@@ -229,7 +265,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   `GetCurrentExperience`, `GetCurrentState`). `ScreenLinkButton` (initial screen, next to the language
   toggle) shows the link state and opens `PairScreen` (`mobile_scanner` camera window, accepts only
   `ws://host:port` codes, camera errors/permission denied shown in the window with Try again; plus a manual
-  IP/host + port bar, port default 3737, validated, prefilled from the saved pairing). Android needs INTERNET/CAMERA and cleartext traffic.
+  IP/host + port bar, port default 3737, validated, prefilled from the saved pairing). Android needs INTERNET/CAMERA and cleartext traffic
+  (and storage access for the leads, above).
 - Main screen mirroring: screens drive states of the player's `ezdihar` experience (each plays its
   video, then holds on its hero image). `MirrorState(state:, tag:)` (`lib/widgets/mirror_state.dart`,
   its `routeObserver` is on `MaterialApp.navigatorObservers`) sends `StartState {id, experience, tag}`
@@ -249,7 +286,9 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   close; an open city landmark sends `ShowModal {kind: landmark, id, title, description, metadata,
   locale}` (the card's texts in the current language, re-sent on language change; the player shows
   `Landmarks/<id>` in the gallery modal's frame, text centred at its bottom, metadata top-end, RTL for `ar`),
-  `HideModal` on close. A new state also closes the modal. `PlayerConnection` drops repeats and resends the state
+  `HideModal` on close; the comparison sends `ShowModal {kind: compare, apartments: [{buildingType,
+  apartmentType, building?, floor?}]}` on open and on every add/remove (the player does not handle
+  `compare` yet), `HideModal` on close. A new state also closes the modal. `PlayerConnection` drops repeats and resends the state
   + modal on every (re)connect. New screens/panels: wrap them in `MirrorState` and add the state to
   the player's `Assets/Experiences/ezdihar/config.json`.
 - `ZoomView` (`lib/widgets/zoom_view.dart`): pinch / double-tap zoom with free pan for a
@@ -280,6 +319,7 @@ Sizing / touch:
   around the 32px X; masterplan id labels 48px-high target around the 24px pill).
 
 Behaviour (not in Figma):
+- Storage access screen before the app (client's request: no access -> app closes).
 - `IdleReset` (90s + 15s countdown) and `LocaleFade`; thank-you screen auto-restart (30s) and toast
   auto-dismiss (8s); extra "Browse more units" button on the thank-you screen.
 - `confirmRestart` dialog before Restart on masterplan and building screens.
@@ -291,7 +331,11 @@ Behaviour (not in Figma):
   layered Back/Esc via `PopScope`, animated panel swaps, bedrooms label on apartment cards,
   fading edges + arrow buttons on the apartment row.
 - Register form: validate-on-blur with error messages, autofill hints, next/done actions,
-  country-code picker, digits-only phone, focus first invalid field.
+  country-code picker, digits-only phone, focus first invalid field; "could not save" message.
+- Compare: an X on each card removes it; an empty comparison opens straight on Select Building;
+  compared types show greyed "Added" in the picker; extra "Building Type" row on each card (types
+  from different buildings are compared); floor range text for a type picked by type; picker back
+  arrow; building type letters stay Latin in Arabic ("المبنى من النوع A").
 - Haptic + subtle sound on every interaction via `UiFeedback` (`lib/services/ui_feedback.dart`).
 
 ## Rules
