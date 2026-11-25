@@ -176,11 +176,13 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   603 / F06 / 13 are placeholders): Select Building tiles A/B/C from the exterior views; Select
   Building Number = `BuildingType.buildingIds` as text buttons (white @ 10%, `AppColors.compareChoice`,
   filling the slot: one column 8 apart up to six, else two to a row 4 apart, an odd last one
-  spanning); Select Floor = that type's floors with apartments, top first, named via `floorName`,
-  always one column; Apartment Type tiles = that floor's types, from
-  `assets/images/compare/interior_1|2.jpg` (1-2BR -> interior_1, 3BR+ -> interior_2). The same
-  apartment (building + floor + type) already compared is greyed "Added" and cannot be picked;
-  picker back arrow / Back / Esc step back one step at a time. All slots match the tallest card
+  spanning); Apartment Type tiles = the building type's types, from
+  `assets/images/compare/interior_1|2.jpg` (1-2BR -> interior_1, 3BR+ -> interior_2); then Select
+  Floor = only the floors with that apartment type, top first, named via `floorName`, always one
+  column (the client's order: type before floor; Figma has the floor first). An apartment
+  (building + type + floor) already compared is a greyed "Added" floor that cannot be picked, and a
+  type whose every floor is compared is a greyed "Added" tile; picker back arrow / Back / Esc step
+  back one step at a time. All slots match the tallest card
   (`IntrinsicHeight`). When full the title is "Apartments Comparison" and each card has Register
   Interest (opens the form with that apartment: the lead has the same fields as from the apartment
   details, building id and floor included). Each card's X removes it. Assets in `assets/images/compare/`.

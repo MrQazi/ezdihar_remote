@@ -58,7 +58,7 @@ void main() {
 
   /// Adds [unitType] on [floor] of [building] through the picker: building
   /// type, building number, floor, apartment type.
-  Future<void> pick(WidgetTester tester, String building, String floor, String unitType) async {
+  Future<void> pick(WidgetTester tester, String building, String unitType, String floor) async {
     if (find.text('Add apartment to compare').evaluate().isNotEmpty) {
       await tester.tap(find.text('Add apartment to compare'));
       await settle(tester);
@@ -69,11 +69,11 @@ void main() {
     // .last: a card may show the same id or floor; the picker comes after the cards.
     await tester.tap(inCompare(find.text(building)).last);
     await settle(tester);
-    expect(find.text('Select Floor'), findsOneWidget);
-    await tester.tap(inCompare(find.text(floor)).last);
-    await settle(tester);
     expect(find.text('Apartment Type'), findsOneWidget);
     await tester.tap(find.text(unitType));
+    await settle(tester);
+    expect(find.text('Select Floor'), findsOneWidget);
+    await tester.tap(inCompare(find.text(floor)).last);
     await settle(tester);
   }
 
@@ -133,23 +133,51 @@ void main() {
     }
     await tester.tap(inCompare(find.text('A03')));
     await settle(tester);
-    // Then its floors with apartments, top first; A's 2BR is only on 6F.
-    expect(find.text('Select Floor'), findsOneWidget);
-    await tester.tap(inCompare(find.text('6F')));
+    // Then the type's apartment types, then only the floors that have the
+    // picked one, top first.
+    expect(find.text('Apartment Type'), findsOneWidget);
+    for (final unit in ['1BR', '2BR', '3BR', '4BR']) {
+      expect(find.text(unit), findsOneWidget);
+    }
+    await tester.tap(find.text('4BR'));
     await settle(tester);
+    expect(find.text('Select Floor'), findsOneWidget);
+    // A's 4BR is on GF..5F, not 6F.
+    for (final floor in ['5F', '4F', '3F', '2F', '1F', 'GF']) {
+      expect(inCompare(find.text(floor)), findsOneWidget);
+    }
+    expect(inCompare(find.text('6F')), findsNothing);
+    await tester.tap(find.byTooltip('Back').last);
+    await settle(tester);
+    // A's 2BR is only on 6F.
     await tester.tap(find.text('2BR'));
+    await settle(tester);
+    expect(inCompare(find.text('6F')), findsOneWidget);
+    expect(inCompare(find.text('5F')), findsNothing);
+    await tester.tap(inCompare(find.text('6F')));
     await settle(tester);
     expect(find.text('Select one more apartment for comparison'), findsOneWidget);
     expect(inCompare(find.text('6F')), findsOneWidget);
     expect(inCompare(find.text('A03')), findsOneWidget);
     expect(inCompare(find.text('135.83 M²')), findsOneWidget);
 
-    // The same apartment (building, floor, type) cannot be added twice.
-    await pick(tester, 'A03', '6F', '2BR · Added');
+    // The same apartment (building, type, floor) cannot be added twice: the
+    // type's only floor is compared, so the type shows "Added".
+    await tester.tap(find.text('Add apartment to compare'));
+    await settle(tester);
+    await tester.tap(find.text('Building Type A'));
+    await settle(tester);
+    await tester.tap(inCompare(find.text('A03')).last);
+    await settle(tester);
+    await tester.tap(find.text('2BR · Added'));
+    await settle(tester);
     expect(find.text('Apartment Type'), findsOneWidget);
+    // Another type's floors are offered.
+    await tester.tap(find.text('3BR'));
+    await settle(tester);
 
     // Back steps out of the picker, one step at a time.
-    for (final title in ['Select Floor', 'Select Building Number', 'Select Building']) {
+    for (final title in ['Apartment Type', 'Select Building Number', 'Select Building']) {
       await tester.tap(find.byTooltip('Back').last);
       await settle(tester);
       expect(find.text(title), findsOneWidget);
@@ -159,13 +187,13 @@ void main() {
     expect(find.text('Add apartment to compare'), findsOneWidget);
 
     // Type B has 15 buildings (two to a row).
-    await pick(tester, 'B12', '3F', '3BR');
+    await pick(tester, 'B12', '3BR', '3F');
     expect(find.text('Select one more apartment for comparison'), findsOneWidget);
     expect(inCompare(find.text('B12')), findsOneWidget);
     expect(inCompare(find.text('3F')), findsOneWidget);
     expect(find.text('Register Interest'), findsNothing);
 
-    await pick(tester, 'C02', '1F', '1BR');
+    await pick(tester, 'C02', '1BR', '1F');
     expect(find.text('Apartments Comparison'), findsOneWidget);
     expect(find.text('Add apartment to compare'), findsNothing);
     expect(find.text('Register Interest'), findsNWidgets(3));
@@ -188,9 +216,9 @@ void main() {
     await pumpBuilding(tester, 'en');
     await tester.tap(find.text('Compare Apartment'));
     await settle(tester);
-    await pick(tester, 'A03', '6F', '2BR');
-    await pick(tester, 'B12', '3F', '3BR');
-    await pick(tester, 'C02', '1F', '1BR');
+    await pick(tester, 'A03', '2BR', '6F');
+    await pick(tester, 'B12', '3BR', '3F');
+    await pick(tester, 'C02', '1BR', '1F');
 
     await tester.tap(find.text('Register Interest').first);
     await settle(tester);
@@ -276,7 +304,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('B39'));
     await settle(tester);
-    expect(find.text('Select Floor'), findsOneWidget);
+    expect(find.text('Apartment Type'), findsOneWidget);
   });
 
   testWidgets('Arabic: picker and card labels from the Arabic frames', (tester) async {
@@ -289,13 +317,13 @@ void main() {
     expect(find.text('اختر رقم المبنى'), findsOneWidget);
     await tester.tap(inCompare(find.text('A01')));
     await settle(tester);
-    expect(find.text('اختر الطابق'), findsOneWidget);
-    await tester.tap(inCompare(find.text('ط6')));
-    await settle(tester);
     expect(find.text('نوع الشقة'), findsOneWidget);
     expect(find.text('غرفة نوم واحدة'), findsOneWidget);
     expect(find.text('غرفتا نوم'), findsOneWidget);
     await tester.tap(find.text('غرفتا نوم'));
+    await settle(tester);
+    expect(find.text('اختر الطابق'), findsOneWidget);
+    await tester.tap(inCompare(find.text('ط6')));
     await settle(tester);
     expect(find.text('اختر شقة أخرى للمقارنة'), findsOneWidget);
     expect(inCompare(find.text('ط6')), findsOneWidget);

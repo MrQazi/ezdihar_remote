@@ -27,8 +27,9 @@ const _assets = 'assets/images/compare';
 /// Up to [maxApartments] apartment cards side by side (plan, building type,
 /// apartment type, area, floor, building number, status). While there is
 /// room, one more slot adds an apartment: "Add apartment to compare", then
-/// Select Building (type), Select Building Number, Select Floor and Apartment
-/// Type, all from the data (Figma's numbers are placeholders). Full, the panel
+/// Select Building (type), Select Building Number, Apartment Type and Select
+/// Floor (only floors with that apartment type), all from the data (Figma's
+/// numbers are placeholders; Figma has the floor before the type). Full, the panel
 /// is "Apartments Comparison" and every card has a Register Interest button.
 /// A card's X takes it out again.
 ///
@@ -57,7 +58,7 @@ class CompareScreen extends StatefulWidget {
 }
 
 /// What the add slot shows.
-enum _Step { prompt, building, buildingNumber, floor, apartmentType }
+enum _Step { prompt, building, buildingNumber, apartmentType, floor }
 
 /// Figma sizes: 357-wide cards 8 apart; a card without its button is 377 high.
 const _slotWidth = 357.0;
@@ -96,10 +97,21 @@ class _CompareScreenState extends State<CompareScreen> {
   late _Step _step = _apartments.isEmpty ? _Step.building : _Step.prompt;
 
   /// The choices made so far in the picker: building type (Select Building),
-  /// building id (Select Building Number) and floor (Select Floor).
+  /// building id (Select Building Number) and apartment type (Apartment Type).
+  /// Select Floor comes last and lists only floors with that apartment type.
   BuildingType? _pickedType;
   String? _pickedBuilding;
-  FloorDetails? _pickedFloor;
+  String? _pickedUnitType;
+
+  /// Floors of the picked type with [unitType], top first (as in Figma).
+  List<FloorDetails> _floorsWith(String unitType) => [
+        for (final floor in _pickedType!.floorDetails.reversed)
+          if (floor.apartmentTypes.contains(unitType)) floor,
+      ];
+
+  /// Whether [floor] of the picked building, with [unitType], is already compared.
+  bool _compared(String floor, String unitType) =>
+      _apartments.any((a) => a.isSame(_pickedBuilding!, floor, unitType));
 
   /// Every building type, for the picker (null while loading).
   List<BuildingType>? _types;
@@ -151,14 +163,14 @@ class _CompareScreenState extends State<CompareScreen> {
         'apartments': [for (final a in _apartments) a.mirror],
       });
 
-  /// Back in the picker, one step at a time: Apartment Type -> Select Floor ->
+  /// Back in the picker, one step at a time: Select Floor -> Apartment Type ->
   /// Select Building Number -> Select Building -> the prompt.
   void _back() => setState(() {
         switch (_step) {
-          case _Step.apartmentType:
-            _pickedFloor = null;
-            _step = _Step.floor;
           case _Step.floor:
+            _pickedUnitType = null;
+            _step = _Step.apartmentType;
+          case _Step.apartmentType:
             _pickedBuilding = null;
             _step = _Step.buildingNumber;
           case _Step.buildingNumber:
@@ -176,25 +188,25 @@ class _CompareScreenState extends State<CompareScreen> {
 
   void _pickBuilding(String id) => setState(() {
         _pickedBuilding = id;
-        _step = _Step.floor;
-      });
-
-  void _pickFloor(FloorDetails floor) => setState(() {
-        _pickedFloor = floor;
         _step = _Step.apartmentType;
       });
 
-  void _add(String unitType) {
+  void _pickUnitType(String unitType) => setState(() {
+        _pickedUnitType = unitType;
+        _step = _Step.floor;
+      });
+
+  void _add(FloorDetails floor) {
     setState(() {
       _apartments.add(ComparedApartment(
         type: _pickedType!,
-        unitType: unitType,
-        floor: _pickedFloor!.code,
+        unitType: _pickedUnitType!,
+        floor: floor.code,
         buildingId: _pickedBuilding!,
       ));
       _pickedType = null;
       _pickedBuilding = null;
-      _pickedFloor = null;
+      _pickedUnitType = null;
       _step = _Step.prompt;
     });
     _mirror();
@@ -363,33 +375,37 @@ class _CompareScreenState extends State<CompareScreen> {
             for (final id in _pickedType!.buildingIds) _Choice(label: id, onTap: () => _pickBuilding(id)),
           ],
         ),
-      _Step.floor => _PickerStep(
-          key: ValueKey('floor $_pickedBuilding'),
-          title: strings.selectFloor,
-          onBack: _back,
-          labelSize: 12,
-          labelGap: 0,
-          // Top floor first, as in Figma; only floors with apartments.
-          singleColumn: true,
-          choices: [
-            for (final floor in _pickedType!.floorDetails.reversed)
-              if (floor.apartmentTypes.isNotEmpty)
-                _Choice(label: strings.floorName(floor.code), onTap: () => _pickFloor(floor)),
-          ],
-        ),
       _Step.apartmentType => _PickerStep(
-          key: ValueKey('type $_pickedBuilding ${_pickedFloor!.code}'),
+          key: ValueKey('type $_pickedBuilding'),
           title: strings.apartmentType,
           onBack: _back,
           labelSize: 14,
           labelGap: 16,
           tiles: [
-            for (final unitType in _pickedFloor!.apartmentTypes)
+            for (final unitType in _pickedType!.apartmentTypes)
               _Tile(
                 image: _interior(unitType),
                 label: strings.unitTypeName(unitType),
-                compared: _apartments.any((a) => a.isSame(_pickedBuilding!, _pickedFloor!.code, unitType)),
-                onTap: () => _add(unitType),
+                // "Added" once every floor of this building with it is compared.
+                compared: _floorsWith(unitType).every((f) => _compared(f.code, unitType)),
+                onTap: () => _pickUnitType(unitType),
+              ),
+          ],
+        ),
+      _Step.floor => _PickerStep(
+          key: ValueKey('floor $_pickedBuilding $_pickedUnitType'),
+          title: strings.selectFloor,
+          onBack: _back,
+          labelSize: 12,
+          labelGap: 0,
+          // Only floors with the picked apartment type, top first.
+          singleColumn: true,
+          choices: [
+            for (final floor in _floorsWith(_pickedUnitType!))
+              _Choice(
+                label: strings.floorName(floor.code),
+                compared: _compared(floor.code, _pickedUnitType!),
+                onTap: () => _add(floor),
               ),
           ],
         ),
@@ -710,10 +726,13 @@ class _PickerStep extends StatelessWidget {
 
 /// A text choice of the picker (a building number or a floor).
 class _Choice {
-  const _Choice({required this.label, required this.onTap});
+  const _Choice({required this.label, required this.onTap, this.compared = false});
 
   final String label;
   final VoidCallback onTap;
+
+  /// Already in the comparison: dimmed, marked and not tappable.
+  final bool compared;
 }
 
 /// The text choices filling the picker's height (Figma 740:6475 / 740:7107:
@@ -787,21 +806,26 @@ class _ChoiceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final radius = BorderRadius.circular(8);
-    return Material(
-      color: AppColors.compareChoice,
-      borderRadius: radius,
-      child: InkWell(
+    return Opacity(
+      opacity: choice.compared ? 0.4 : 1,
+      child: Material(
+        color: AppColors.compareChoice,
         borderRadius: radius,
-        onTap: () {
-          UiFeedback.select();
-          choice.onTap();
-        },
-        child: Center(
-          child: Text(
-            choice.label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            style: appText(strings, labelSize, FontWeight.w400),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: choice.compared
+              ? null
+              : () {
+                  UiFeedback.select();
+                  choice.onTap();
+                },
+          child: Center(
+            child: Text(
+              choice.compared ? '${choice.label} · ${strings.alreadyCompared}' : choice.label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: appText(strings, labelSize, FontWeight.w400),
+            ),
           ),
         ),
       ),
