@@ -135,9 +135,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   (Drive "New" https://drive.google.com/drive/folders/1TtDOKNM0MkIZycs5h_3qzg7wmhpd0ayy, Building
   A|B|C / Forward + Reversed "Frame n.mp4", 2560x1440, constant 15 fps), bundled as 1080p H.264
   Main@4.1 at their native 15 fps (no interpolation), the reverse files from their Reversed
-  folders. Exception until they are sent another way: B's Frame 2 / Frame 3 (forward and reversed)
-  are over the Drive connector's 10 MB limit, so `b_2*` / `b_3*` are still the previous clips
-  (~10 fps sources motion-interpolated to 30 fps with ffmpeg `minterpolate`). Playback is a platform
+  folders (B's Frame 2 / Frame 3 are over the Drive connector's 10 MB limit; the client sent those
+  four in chat). Playback is a platform
   view (`VideoViewType.platformView`: ExoPlayer into a native SurfaceView, composited by the system
   like a media player, not a texture redrawn in Flutter's frames). The two clips a view can play
   next are loaded ahead (`_prepareClips`); the clip's surface lies under the still, which hides once
