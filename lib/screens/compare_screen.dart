@@ -402,9 +402,19 @@ class _CompareScreenState extends State<CompareScreen> {
           color: AppColors.compareCard,
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: child,
+          // Positioned: the slot takes the cards' height (at least 377) and
+          // the step lays out inside it. Its content reports no intrinsic
+          // height to the row's IntrinsicHeight, so a scrolling list can live
+          // in it.
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: child,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -720,28 +730,48 @@ class _ChoiceList extends StatelessWidget {
 
   static const _maxSingleColumn = 6;
 
+  /// Rows never get shorter than Figma's two-column rows (740:6733, 36
+  /// high); when they would, the list scrolls instead.
+  static const _minRowHeight = 36.0;
+
   @override
   Widget build(BuildContext context) {
     final columns = singleColumn || choices.length <= _maxSingleColumn ? 1 : 2;
     final gap = columns == 1 ? 8.0 : 4.0;
     final rows = (choices.length / columns).ceil();
-    return Column(
-      children: [
-        for (var r = 0; r < rows; r++) ...[
-          if (r > 0) SizedBox(height: gap),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var c = 0; c < columns && r * columns + c < choices.length; c++) ...[
-                  if (c > 0) SizedBox(width: gap),
-                  Expanded(child: _ChoiceButton(choice: choices[r * columns + c], labelSize: labelSize)),
-                ],
+    Widget row(int r) => Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var c = 0; c < columns && r * columns + c < choices.length; c++) ...[
+              if (c > 0) SizedBox(width: gap),
+              Expanded(child: _ChoiceButton(choice: choices[r * columns + c], labelSize: labelSize)),
+            ],
+          ],
+        );
+    return LayoutBuilder(
+      builder: (context, box) {
+        final fitted = (box.maxHeight - gap * (rows - 1)) / rows;
+        // Enough room: the rows share the slot's height, as in Figma.
+        if (fitted >= _minRowHeight) {
+          return Column(
+            children: [
+              for (var r = 0; r < rows; r++) ...[
+                if (r > 0) SizedBox(height: gap),
+                Expanded(child: row(r)),
               ],
-            ),
+            ],
+          );
+        }
+        // More than fits: fixed-height rows in a scrolling list.
+        return Scrollbar(
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: rows,
+            separatorBuilder: (_, _) => SizedBox(height: gap),
+            itemBuilder: (_, r) => SizedBox(height: _minRowHeight, child: row(r)),
           ),
-        ],
-      ],
+        );
+      },
     );
   }
 }

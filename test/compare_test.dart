@@ -238,6 +238,47 @@ void main() {
     expect(find.text('Could not save your details. Please try again.'), findsOneWidget);
   });
 
+  testWidgets('more building numbers than fit scroll instead of shrinking', (tester) async {
+    final types = await tester.runAsync(BuildingType.loadAll);
+    final b = types!.firstWhere((t) => t.type == 'B');
+    // Type B with 40 buildings: 20 rows, far more than the slot holds.
+    BuildingType.debugLoaded = [
+      for (final t in types)
+        t.type != 'B'
+            ? t
+            : BuildingType(
+                type: 'B',
+                buildingCount: 40,
+                floors: b.floors,
+                apartmentsPerBuilding: b.apartmentsPerBuilding,
+                apartmentTypes: b.apartmentTypes,
+                totalArea: b.totalArea,
+                floorDetails: b.floorDetails,
+                apartments: b.apartments,
+              ),
+    ];
+    addTearDown(() => BuildingType.debugLoaded = types);
+
+    await pumpBuilding(tester, 'en');
+    await tester.tap(find.text('Compare Apartment'));
+    await settle(tester);
+    await tester.tap(find.text('Building Type B'));
+    await settle(tester);
+
+    final list = inCompare(find.byType(Scrollable)).last;
+    expect(tester.getSize(inCompare(find.text('B01'))).height, greaterThan(0));
+    expect(find.text('B40'), findsNothing, reason: 'below the fold until scrolled');
+    // Rows keep Figma's height.
+    final button = find.ancestor(of: find.text('B01'), matching: find.byType(InkWell)).first;
+    expect(tester.getSize(button).height, 36);
+
+    await tester.scrollUntilVisible(find.text('B39'), 200, scrollable: list);
+    await settle(tester);
+    await tester.tap(find.text('B39'));
+    await settle(tester);
+    expect(find.text('Select Floor'), findsOneWidget);
+  });
+
   testWidgets('Arabic: picker and card labels from the Arabic frames', (tester) async {
     await pumpBuilding(tester, 'ar');
     await tester.tap(find.text('مقارنة الشقق'));

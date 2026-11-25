@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 double _area(Object? json) => ((json as Map)['value'] as num).toDouble();
@@ -131,6 +132,10 @@ class BuildingType {
 
   static Future<List<BuildingType>> loadAll() async =>
       _loaded ??= await _load();
+
+  /// Replaces the loaded data (null: read the files again).
+  @visibleForTesting
+  static set debugLoaded(List<BuildingType>? types) => _loaded = types;
 
   static Future<List<BuildingType>> _load() async {
     final [buildings, floors, apartments] =
