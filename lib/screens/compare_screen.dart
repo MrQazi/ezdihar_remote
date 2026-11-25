@@ -398,12 +398,14 @@ class _CompareScreenState extends State<CompareScreen> {
           onBack: _back,
           labelSize: 12,
           labelGap: 0,
-          // Only floors with the picked apartment type, top first.
+          // Every floor, top first; those without the picked apartment type
+          // are shown disabled (not skipped).
           singleColumn: true,
           choices: [
-            for (final floor in _floorsWith(_pickedUnitType!))
+            for (final floor in _pickedType!.floorDetails.reversed)
               _Choice(
                 label: strings.floorName(floor.code),
+                enabled: floor.apartmentTypes.contains(_pickedUnitType),
                 compared: _compared(floor.code, _pickedUnitType!),
                 onTap: () => _add(floor),
               ),
@@ -726,13 +728,19 @@ class _PickerStep extends StatelessWidget {
 
 /// A text choice of the picker (a building number or a floor).
 class _Choice {
-  const _Choice({required this.label, required this.onTap, this.compared = false});
+  const _Choice({required this.label, required this.onTap, this.enabled = true, this.compared = false});
 
   final String label;
   final VoidCallback onTap;
 
+  /// False when it does not qualify (a floor without the picked apartment
+  /// type): dimmed and not tappable.
+  final bool enabled;
+
   /// Already in the comparison: dimmed, marked and not tappable.
   final bool compared;
+
+  bool get tappable => enabled && !compared;
 }
 
 /// The text choices filling the picker's height (Figma 740:6475 / 740:7107:
@@ -806,22 +814,23 @@ class _ChoiceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
     final radius = BorderRadius.circular(8);
+    final marked = choice.enabled && choice.compared;
     return Opacity(
-      opacity: choice.compared ? 0.4 : 1,
+      opacity: choice.tappable ? 1 : 0.4,
       child: Material(
         color: AppColors.compareChoice,
         borderRadius: radius,
         child: InkWell(
           borderRadius: radius,
-          onTap: choice.compared
-              ? null
-              : () {
+          onTap: choice.tappable
+              ? () {
                   UiFeedback.select();
                   choice.onTap();
-                },
+                }
+              : null,
           child: Center(
             child: Text(
-              choice.compared ? '${choice.label} · ${strings.alreadyCompared}' : choice.label,
+              marked ? '${choice.label} · ${strings.alreadyCompared}' : choice.label,
               textAlign: TextAlign.center,
               maxLines: 1,
               style: appText(strings, labelSize, FontWeight.w400),

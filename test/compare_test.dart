@@ -142,18 +142,25 @@ void main() {
     await tester.tap(find.text('4BR'));
     await settle(tester);
     expect(find.text('Select Floor'), findsOneWidget);
-    // A's 4BR is on GF..5F, not 6F.
-    for (final floor in ['5F', '4F', '3F', '2F', '1F', 'GF']) {
-      expect(inCompare(find.text(floor)), findsOneWidget);
-    }
-    expect(inCompare(find.text('6F')), findsNothing);
+    // Every floor is listed, top first; A's 4BR is on GF..5F, so 6F is
+    // there but disabled.
+    final floors = ['6F', '5F', '4F', '3F', '2F', '1F', 'GF'];
+    final tops = [for (final f in floors) tester.getTopLeft(inCompare(find.text(f))).dy];
+    expect(tops, [...tops]..sort(), reason: 'descending: 6F on top');
+    await tester.tap(inCompare(find.text('6F')));
+    await settle(tester);
+    expect(find.text('Select Floor'), findsOneWidget, reason: '6F has no 4BR: not tappable');
     await tester.tap(find.byTooltip('Back').last);
     await settle(tester);
-    // A's 2BR is only on 6F.
+    // A's 2BR is only on 6F: the other floors are listed, disabled.
     await tester.tap(find.text('2BR'));
     await settle(tester);
-    expect(inCompare(find.text('6F')), findsOneWidget);
-    expect(inCompare(find.text('5F')), findsNothing);
+    for (final f in floors) {
+      expect(inCompare(find.text(f)), findsOneWidget);
+    }
+    await tester.tap(inCompare(find.text('5F')));
+    await settle(tester);
+    expect(find.text('Select Floor'), findsOneWidget, reason: '5F has no 2BR: not tappable');
     await tester.tap(inCompare(find.text('6F')));
     await settle(tester);
     expect(find.text('Select one more apartment for comparison'), findsOneWidget);

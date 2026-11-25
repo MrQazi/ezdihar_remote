@@ -178,8 +178,9 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   filling the slot: one column 8 apart up to six, else two to a row 4 apart, an odd last one
   spanning); Apartment Type tiles = the building type's types, from
   `assets/images/compare/interior_1|2.jpg` (1-2BR -> interior_1, 3BR+ -> interior_2); then Select
-  Floor = only the floors with that apartment type, top first, named via `floorName`, always one
-  column (the client's order: type before floor; Figma has the floor first). An apartment
+  Floor = every floor of the type, top first (descending), named via `floorName`, always one
+  column; floors without that apartment type are listed but disabled (dimmed, not tappable), never
+  skipped (the client's order: type before floor; Figma has the floor first). An apartment
   (building + type + floor) already compared is a greyed "Added" floor that cannot be picked, and a
   type whose every floor is compared is a greyed "Added" tile; picker back arrow / Back / Esc step
   back one step at a time. All slots match the tallest card
