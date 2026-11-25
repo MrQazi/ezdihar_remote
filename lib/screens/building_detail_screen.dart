@@ -9,8 +9,10 @@ import 'package:video_player/video_player.dart';
 
 import '../data/building_data.dart';
 import '../data/building_views.dart';
+import '../data/compared_apartment.dart';
 import '../data/outline_shape.dart';
 import '../l10n/app_strings.dart';
+import '../services/lead_store.dart';
 import '../services/ui_feedback.dart';
 import '../theme/app_colors.dart';
 import '../widgets/fade_in_asset.dart';
@@ -22,6 +24,7 @@ import '../widgets/panel_close_button.dart';
 import '../widgets/restart_dialog.dart';
 import '../widgets/status_chip.dart';
 import 'brochure_screen.dart';
+import 'compare_screen.dart';
 import 'register_interest_screen.dart';
 
 /// Exterior view of a single building with an info panel.
@@ -271,6 +274,20 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
   /// Restart: confirm, then clear the stack and return to the first page.
   void _restart() => confirmRestart(context);
 
+  /// The apartment of the open apartment details, or null.
+  ComparedApartment? get _openApartment => _apartment == null
+      ? null
+      : ComparedApartment(
+          type: widget.type,
+          unitType: _floorTypes[_apartment!],
+          floor: _floors[_floor!].code,
+          buildingId: widget.buildingId,
+        );
+
+  /// The comparison starts with the apartment on screen, if one is open
+  /// (empty from the building and floor views).
+  void _openCompare() => CompareScreen.open(context, initial: [?_openApartment]);
+
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
@@ -474,21 +491,44 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
                       Align(
                         key: const ValueKey('restart'),
                         alignment: AlignmentDirectional.bottomEnd,
-                        child: GlassIconButton(
-                          size: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 21),
-                          onPressed: _restart,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SvgPicture.asset('$_assets/icon_restart.svg'),
-                              const SizedBox(width: 8),
-                              Text(
-                                strings.restart,
-                                style: _text(strings, 14, FontWeight.w400, spacing: 0.28),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Figma 688:2955, 16 before Restart.
+                            GlassIconButton(
+                              size: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 21),
+                              onPressed: _openCompare,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SvgPicture.asset('assets/images/compare/icon_compare.svg'),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    strings.compareApartment,
+                                    style: _text(strings, 14, FontWeight.w400, spacing: 0.28),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 16),
+                            GlassIconButton(
+                              size: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 21),
+                              onPressed: _restart,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SvgPicture.asset('$_assets/icon_restart.svg'),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    strings.restart,
+                                    style: _text(strings, 14, FontWeight.w400, spacing: 0.28),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -547,6 +587,13 @@ class _BuildingDetailScreenState extends State<BuildingDetailScreen> {
           type: _floorTypes[_apartment!],
           plan: widget.type.planAsset(_floorTypes[_apartment!]),
           details: widget.type.apartments[_floorTypes[_apartment!]],
+          interest: InterestTarget(
+            buildingType: widget.type.type,
+            unitType: _floorTypes[_apartment!],
+            buildingId: widget.buildingId,
+            floor: _floors[_floor!].code,
+            source: InterestTarget.fromApartmentDetails,
+          ),
           onClose: _closeApartment,
         ),
       );
@@ -1042,6 +1089,7 @@ class _ApartmentDetailsPanel extends StatelessWidget {
     required this.type,
     required this.plan,
     required this.details,
+    required this.interest,
     required this.onClose,
   });
 
@@ -1049,6 +1097,9 @@ class _ApartmentDetailsPanel extends StatelessWidget {
 
   /// Floor name in the sheet's convention, e.g. "3F" or "GF".
   final String floor;
+
+  /// This apartment, saved with a Register Interest submission.
+  final InterestTarget interest;
 
   /// Apartment type id, e.g. "2BR".
   final String type;
@@ -1121,7 +1172,7 @@ class _ApartmentDetailsPanel extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _PanelButton(label: strings.registerInterest, filled: true, onTap: () => RegisterInterestScreen.open(context)),
+                    child: _PanelButton(label: strings.registerInterest, filled: true, onTap: () => RegisterInterestScreen.open(context, target: interest)),
                   ),
                 ],
               ),

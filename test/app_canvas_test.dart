@@ -3,9 +3,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ezdihar_remote/data/building_data.dart';
+import 'package:ezdihar_remote/data/compared_apartment.dart';
 import 'package:ezdihar_remote/l10n/app_strings.dart';
 import 'package:ezdihar_remote/screens/building_detail_screen.dart';
 import 'package:ezdihar_remote/screens/city_context_screen.dart';
+import 'package:ezdihar_remote/screens/compare_screen.dart';
 import 'package:ezdihar_remote/screens/initial_screen.dart';
 import 'package:ezdihar_remote/screens/masterplan_screen.dart';
 import 'package:ezdihar_remote/screens/register_interest_screen.dart';
@@ -29,6 +31,10 @@ void main() {
     'city context': () => CityContextScreen(onLocaleChanged: noop),
     'masterplan': () => MasterplanScreen(onLocaleChanged: noop),
     'building': () => BuildingDetailScreen(type: types.first, buildingId: 'A01', onLocaleChanged: noop),
+    'compare (picker)': () => const CompareScreen(),
+    'compare (full)': () => CompareScreen(
+          initial: [for (final t in types) ComparedApartment(type: t, unitType: t.apartmentTypes.first)],
+        ),
     'register interest': () => const RegisterInterestScreen(),
     'thank you': () => const InterestRegisteredScreen(),
   };

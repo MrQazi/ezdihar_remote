@@ -66,4 +66,11 @@ abstract final class AppColors {
 
   /// Halo ring around range-slider thumbs (#D3AC87 @ 40%).
   static const sliderHalo = Color(0x66D3AC87);
+
+  /// Apartment comparison (Figma 688:3134): cards and the add slot (white @ 8%),
+  /// the "available" status dot, and the light Register Interest button.
+  static const compareCard = Color(0x14FFFFFF);
+  static const statusAvailable = Color(0xFF61963F);
+  static const compareButton = Color(0xFFEEEEEE);
+  static const compareButtonText = Color(0xFF1C2633);
 }
