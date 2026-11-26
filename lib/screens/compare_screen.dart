@@ -303,7 +303,6 @@ class _CompareScreenState extends State<CompareScreen> {
                           _ApartmentCard(
                             key: ObjectKey(apartment),
                             apartment: apartment,
-                            registerInterest: _full,
                             onRemove: () => _remove(apartment),
                           ),
                         ],
@@ -444,18 +443,17 @@ class _CompareScreenState extends State<CompareScreen> {
       ];
 }
 
-/// One apartment of the comparison (Figma 688:3142; with its Register
-/// Interest button once the comparison is full, 689:4107).
+/// One apartment of the comparison (Figma 688:3142) with its Register Interest
+/// button (Figma 689:4107). Figma shows the button only once three apartments
+/// are compared; the client wants it on every card from the first one.
 class _ApartmentCard extends StatelessWidget {
   const _ApartmentCard({
     super.key,
     required this.apartment,
-    required this.registerInterest,
     required this.onRemove,
   });
 
   final ComparedApartment apartment;
-  final bool registerInterest;
   final VoidCallback onRemove;
 
   /// Figma: the plan is 259:146 across the card's 293 inner width.
@@ -506,10 +504,8 @@ class _ApartmentCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  if (registerInterest) ...[
-                    const SizedBox(height: 40),
-                    SizedBox(width: double.infinity, child: _RegisterButton(apartment: apartment)),
-                  ],
+                  const SizedBox(height: 40),
+                  SizedBox(width: double.infinity, child: _RegisterButton(apartment: apartment)),
                 ],
               ),
             ),

@@ -198,7 +198,8 @@ void main() {
     expect(find.text('Select one more apartment for comparison'), findsOneWidget);
     expect(inCompare(find.text('B12')), findsOneWidget);
     expect(inCompare(find.text('3F')), findsOneWidget);
-    expect(find.text('Register Interest'), findsNothing);
+    // Every card has Register Interest, before the comparison is full.
+    expect(find.text('Register Interest'), findsNWidgets(2));
 
     await pick(tester, 'C02', '1BR', '1F');
     expect(find.text('Apartments Comparison'), findsOneWidget);

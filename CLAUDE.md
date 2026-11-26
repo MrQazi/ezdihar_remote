@@ -199,8 +199,9 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   (building + type + floor) already compared is a greyed "Added" floor that cannot be picked, and a
   type whose every floor is compared is a greyed "Added" tile; picker back arrow / Back / Esc step
   back one step at a time. All slots match the tallest card
-  (`IntrinsicHeight`). When full the title is "Apartments Comparison" and each card has Register
-  Interest (opens the form with that apartment: the lead has the same fields as from the apartment
+  (`IntrinsicHeight`). When full the title is "Apartments Comparison". Every card has Register
+  Interest from the first apartment on (Figma shows it only when three are compared; the client's
+  choice), which opens the form with that apartment (the lead has the same fields as from the apartment
   details, building id and floor included). Each card's X removes it. Assets in `assets/images/compare/`.
 - Brochure: the apartment details Brochure button calls `BrochureScreen.open(context)`
   (`lib/screens/brochure_screen.dart`), a transparent full-screen modal showing
@@ -358,7 +359,8 @@ Behaviour (not in Figma):
   country-code picker, digits-only phone, focus first invalid field; "could not save" message.
 - Compare: an X on each card removes it; an empty comparison opens straight on Select Building;
   compared apartments show greyed "Added" in the picker; extra "Building Type" row on each card;
-  picker back arrow; building type letters stay Latin in Arabic ("المبنى من النوع A").
+  picker back arrow; building type letters stay Latin in Arabic ("المبنى من النوع A"); Register
+  Interest on every card, not only when three are compared.
 - Haptic + subtle sound on every interaction via `UiFeedback` (`lib/services/ui_feedback.dart`).
 
 ## Rules
