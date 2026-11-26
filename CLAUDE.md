@@ -114,8 +114,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   as in Figma (a dark-text variant was tried and dropped by the client). The image cache is raised to 400 MB in `main()` so the ~133 MB decoded map stays cached. `lib/data/masterplan_data.dart` holds the Figma
   placement: `masterplanBuildings` (22, real ids A01..A05 / B01..B15 / C01 / C02, each an orange
   traced outline `OutlineShape` + id label box; B08 and A05 share Figma's Vector 67, one
-  sub-path each) and `masterplanAmenities` (Green Area 1-9, Children's Playground 1-7 = Figma's
-  "Play Area", Padel Court 1-3, Water Fountain, Basketball and Volleyball Court: copper pills,
+  sub-path each) and `masterplanAmenities` (Green Area 1-9, Play Area 1-7 (QA: not the content
+  doc's "Children's Playground", which wrapped letter by letter; Arabic "منطقة الألعاب"; the client's wording), Padel Court 1-3, Water Fountain, Basketball and Volleyball Court: copper pills,
   names in `AppStrings.amenity` per the content doc; tapping one opens its kind's photo in `ImageModal`,
   one photo per `AmenityKind` = `assets/images/masterplan/amenities/<kind id>.jpg`, the client's
   3840x2160 renders sent in chat). Tapping a building's outline or id label opens it. Figma's
@@ -206,7 +206,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
 - Brochure: the apartment details Brochure button calls `BrochureScreen.open(context)`
   (`lib/screens/brochure_screen.dart`), a transparent full-screen modal showing
   `assets/pdfs/brochure.pdf` via `pdfx` (`PdfView`, portrait page centred in a padded, bordered frame sized to the page aspect, swipe + start/end arrow
-  buttons, pinch zoom, page counter, X closes).
+  buttons, pinch zoom, page counter, X closes). Tablet only: it is not mirrored to the main screen
+  (QA: no brochure panel on the PC).
 - `ImageModal` (`lib/screens/image_modal.dart`, `ImageModal.open(context, images:, initialIndex:)`):
   the brochure's layout for pictures (16:9 picture in the same bordered frame, Close top-end,
   caption + "n / N" at the bottom, arrows / swipe / arrow keys when there are several, Esc closes);
@@ -306,9 +307,8 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   MirrorState, so the main screen keeps the previous state. Modals: the gallery image modal sends
   `ShowModal {kind: gallery, id: gallery_N}` for the render on screen, `HideModal` on close; an
   amenity's image modal sends `ShowModal {kind: amenity, id: <kind id, e.g. padel_court>, title,
-  locale}` (the player does not handle `amenity` yet), `HideModal` on close; the
-  brochure sends `ShowModal {kind: brochure, page}` on open and every page change, `HideModal` on
-  close; an open city landmark sends `ShowModal {kind: landmark, id, title, description, metadata,
+  locale}` (the player shows `Amenities/<id>.jpg` in the gallery modal's frame with the title at
+  its bottom), `HideModal` on close; the brochure sends nothing; an open city landmark sends `ShowModal {kind: landmark, id, title, description, metadata,
   locale}` (the card's texts in the current language, re-sent on language change; the player shows
   `Landmarks/<id>` in the gallery modal's frame, text centred at its bottom, metadata top-end, RTL for `ar`),
   `HideModal` on close; the comparison sends `ShowModal {kind: compare, apartments: [{buildingType,

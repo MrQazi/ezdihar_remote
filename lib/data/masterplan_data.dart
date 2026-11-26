@@ -85,8 +85,8 @@ const masterplanAmenities = [
   MasterplanAmenity(AmenityKind.greenArea, 7, Offset(443.5, 543), 77, 87),
   MasterplanAmenity(AmenityKind.greenArea, 8, Offset(312.5, 603), 73, 86),
   MasterplanAmenity(AmenityKind.greenArea, 9, Offset(148.5, 675), 77, 89),
-  // Figma's "Play Area" became the content doc's longer "Children's Playground":
-  // 82 wide in English so "Children's" fits on one line (4 and 5 then just touch).
+  // "Play Area" as in Figma (QA: the content doc's "Children's Playground" wrapped letter by
+  // letter); 82 wide (4 and 5 just touch).
   MasterplanAmenity(AmenityKind.playArea, 1, Offset(1754.5, 487), 82, 78),
   MasterplanAmenity(AmenityKind.playArea, 2, Offset(1530, 491), 82, 80),
   MasterplanAmenity(AmenityKind.playArea, 3, Offset(1337, 492), 82, 82),

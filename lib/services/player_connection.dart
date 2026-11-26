@@ -92,8 +92,7 @@ class PlayerConnection extends ChangeNotifier {
     send('StartState', state);
   }
 
-  /// Opens (or updates) the main screen's modal: `{'kind': 'gallery', 'id': ...}` or
-  /// `{'kind': 'brochure', 'page': n}`.
+  /// Opens (or updates) the main screen's modal, e.g. `{'kind': 'gallery', 'id': ...}`.
   void showModal(Map<String, Object?> modal) {
     if (_modal != null && jsonEncode(_modal) == jsonEncode(modal)) return;
     _modal = modal;
