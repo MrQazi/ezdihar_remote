@@ -18,9 +18,9 @@ samples, guidance on mobile development, and a full API reference.
 ## Download the app
 
 - **Latest main build (for testing):**
-  https://github.com/Qazi-Narsun/ezdihar_remote/releases/tag/main-latest
+  https://github.com/MrQazi/ezdihar_remote/releases/tag/main-latest
   — one pre-release, replaced by every push to `main` that passes analyze + test.
-- **Numbered releases:** https://github.com/Qazi-Narsun/ezdihar_remote/releases
+- **Numbered releases:** https://github.com/MrQazi/ezdihar_remote/releases
   (`v<version>-build<run>`, published from the `release` branch).
 
 Every APK (local, `main`, `release`) is signed with the same debug key

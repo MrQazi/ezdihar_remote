@@ -393,7 +393,7 @@ Behaviour (not in Figma):
   a `release` push publishes a GitHub release (each run uses a build number), and it refuses a
   commit without a successful `main` run. Every passing `main` push replaces the single `main-latest`
   pre-release (never marked Latest) with its APK: the newest main build is always at
-  https://github.com/Qazi-Narsun/ezdihar_remote/releases/tag/main-latest (also in README.md). The app is never
+  https://github.com/MrQazi/ezdihar_remote/releases/tag/main-latest (also in README.md). The app is never
   published, so every build (debug and release, local and CI) is signed with the debug key
   committed at `android/app/debug.keystore` (standard `android` / `androiddebugkey` credentials):
   any build installs over any other. No signing secrets. "Make a release" = push to `main`, wait for that run to
