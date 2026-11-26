@@ -50,7 +50,12 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   https://docs.google.com/document/d/1n60BtryCBPATok7z3AW-tyGkK63FqliPlZL5VVUOl4M/edit
 - Project data sheet "Ezdihar _ Data" (Building / Floor / Apartment tabs, mirrored by
   `assets/data/*.json`): https://docs.google.com/spreadsheets/d/1p8khdWDAgjdXNpKbSPwz9Q6aHbsSHQcdprNkjJGVSxs/edit
-- Main screen player: https://github.com/Qazi-Narsun/NarsunPlayer (branch `ezdhar_main`).
+- Main screen player: https://github.com/MrQazi/NarsunPlayer (branch `main`; the client's choice,
+  replacing Qazi-Narsun/NarsunPlayer `ezdhar_main`). WinUI / .NET: `SocketServer` (HttpListener on
+  `http://*:3737/`, one WebSocket client at a time), `NarsunPlayer/Misc/VideoManager.cs` handles
+  `StartExperience`, `GetCurrentExperience`, `StartState`, `GetCurrentState`, `ChangeTag`; its main
+  window's QR code holds the bare LAN IP (no `ws://`, no port). It has no `ShowModal` / `HideModal`
+  handlers and no `ezdihar` experience in `Assets/Experiences` yet.
 
 ## Workflow: Figma -> Flutter
 1. Load the `figma:figma-design-to-code` skill, then `create_session` (fileKey) and
@@ -274,7 +279,7 @@ a photo still decoding never flashes white; the masterplan decodes a building's 
   - Background visibility: initial screen tint is a radial gradient (64% -> 25%), modal scrim
     80% -> 64% (the city map now uses Figma's own lighter darkening). `AppColors.textSecondary` (white @ 72%)
     replaces white @ 64% for secondary text.
-- Main screen link (NarsunPlayer, `ezdhar_main` branch of Qazi-Narsun/NarsunPlayer): the player shows a QR
+- Main screen link (NarsunPlayer, see Sources; written against the earlier `ezdhar_main` player): the player shows a QR
   of its WebSocket URL (`ws://<lan-ip>:3737/`) on the main screen while no remote is connected (it accepts
   one remote at a time). `PlayerConnection` (`lib/services/player_connection.dart`, app-wide
   `PlayerConnection.instance`, loaded in `main()`) saves the paired URL in `shared_preferences` and
